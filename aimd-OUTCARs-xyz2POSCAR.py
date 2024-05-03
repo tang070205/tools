@@ -93,7 +93,7 @@ convert_train_xyz_to_poscar()
 
 original_cwd = os.getcwd()  
 for j in range(1, 51):
-    folder_name = f'train_folders/train-{j}' 
+    folder_name = f'train-{j}' 
     folder_path = os.path.join('train_folders', folder_name)  
     shutil.copyfile('INCAR-single', os.path.join(folder_path, 'INCAR'))  #INCAR-single是计算单点能的INCAR
     os.chdir(folder_path) 
