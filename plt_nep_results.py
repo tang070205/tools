@@ -15,9 +15,10 @@ force_diff = np.reshape(force_train[:,3:6]-force_train[:,0:3], (force_train.shap
 rmse_force = np.sqrt(np.mean(force_diff**2))
 virial_train = virial_train[virial_train[:, 1] > -1000, :]
 rmse_virial = np.sqrt(np.mean((virial_train[:, 0:5] - virial_train[:, 6:11])**2))
-
-legend_train = [plt.Line2D([0], [0], color='deepskyblue', marker='.', markersize=6, lw=0, label='train')]
-legend_train_test = [plt.Line2D([0], [0], color='deepskyblue', marker='.', markersize=6, lw=0, label='train'),plt.Line2D([0], [0], color='orange', marker='.', markersize=6, lw=0, label='test')]
+color_train= 'deepskyblue'
+color_test= 'orange'
+legend_train = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train')]
+legend_train_test = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train'),plt.Line2D([0], [0], color='orange', marker='.', markersize=6, lw=0, label='test')]
 
 def replace_this_with_your_code1():
     loglog(loss[:, 1:7])
@@ -28,7 +29,7 @@ def replace_this_with_your_code1():
     pass
 
 def replace_this_with_your_code2():
-    plot(energy_train[:, 1], energy_train[:, 0], '.', color='deepskyblue')
+    plot(energy_train[:, 1], energy_train[:, 0], '.', color=color_train)
     plot(linspace(-9,-6.5), linspace(-9,-6.5), '-')
     xlabel('DFT energy (eV/atom)')
     ylabel('NEP energy (eV/atom)')
@@ -38,7 +39,7 @@ def replace_this_with_your_code2():
     pass
 
 def replace_this_with_your_code3():
-    plot(force_train[:, 3:6], force_train[:, 0:3], '.', color='deepskyblue')
+    plot(force_train[:, 3:6], force_train[:, 0:3], '.', color=color_train)
     #plot(force_train[:, 3:6], force_train[:, 0:3], '.')
     plot(linspace(-60,60), linspace(-60,60), '-')
     xlabel('DFT force (eV/A)')
@@ -50,7 +51,7 @@ def replace_this_with_your_code3():
     pass
 
 def replace_this_with_your_code4():
-    plot(virial_train[:, 6:11], virial_train[:, 0:5], '.', color='deepskyblue')
+    plot(virial_train[:, 6:11], virial_train[:, 0:5], '.', color=color_train)
     plot(linspace(-5,7), linspace(-5,7), '-')
     xlabel('DFT virial (eV/atom)')
     ylabel('NEP virial (eV/atom)')
@@ -60,7 +61,7 @@ def replace_this_with_your_code4():
     pass
 
 def replace_this_with_your_code5():
-    plot(stress_train[:, 6:11], stress_train[:, 0:5], '.', color='deepskyblue')
+    plot(stress_train[:, 6:11], stress_train[:, 0:5], '.', color=color_train)
     plot(linspace(-35,55), linspace(-35,55), '-')
     xlabel('DFT virial (GPa)')
     ylabel('NEP virial (GPa)')
@@ -105,16 +106,16 @@ if os.path.exists('loss.out'):
             legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', 'Energy-test', 'Force-test', 'Virial-test'])
             plt.subplot(2,2,2)
             replace_this_with_your_code2()
-            plot(energy_test[:, 1], energy_test[:, 0], '.', color='orange')
+            plot(energy_test[:, 1], energy_test[:, 0], '.', color=color_test)
             legend(handles=legend_train_test)
             plt.subplot(2,2,3)
             replace_this_with_your_code3()
-            plot(force_test[:, 3:6], force_test[:, 0:3], '.', color='orange')
+            plot(force_test[:, 3:6], force_test[:, 0:3], '.', color=color_test)
             legend(handles=legend_train_test)
             #legend(['test x direction', 'test y direction', 'test z direction', 'train x direction', 'train y direction', 'train z direction'])
             plt.subplot(2,2,4)
             replace_this_with_your_code4()
-            plot(virial_test[:, 6:11], virial_test[:, 0:5], '.', color='orange')
+            plot(virial_test[:, 6:11], virial_test[:, 0:5], '.', color=color_test)
             legend(handles=legend_train_test)
         else:
             rmse_stress = np.sqrt(np.mean((stress_train[:, 0:5] - stress_train[:, 6:11])**2))
@@ -125,20 +126,20 @@ if os.path.exists('loss.out'):
             legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', 'Energy-test', 'Force-test', 'Virial-test'])
             plt.subplot(2,3,2)
             replace_this_with_your_code2()
-            plot(energy_test[:, 1], energy_test[:, 0], '.', color='orange')
+            plot(energy_test[:, 1], energy_test[:, 0], '.', color=color_test)
             legend(handles=legend_train_test)
             plt.subplot(2,3,3)
             replace_this_with_your_code3()
-            plot(force_test[:, 3:6], force_test[:, 0:3], '.', color='orange')
+            plot(force_test[:, 3:6], force_test[:, 0:3], '.', color=color_test)
             legend(handles=legend_train_test)
             #legend(['train x direction', 'train y direction', 'train z direction', 'test x direction', 'test y direction', 'test z direction'])
             plt.subplot(2,3,4)
             replace_this_with_your_code4()
-            plot(virial_test[:, 6:11], virial_test[:, 0:5], '.', color='orange')
+            plot(virial_test[:, 6:11], virial_test[:, 0:5], '.', color=color_test)
             legend(handles=legend_train_test)
             plt.subplot(2,3,5)
             replace_this_with_your_code5()
-            plot(stress_test[:, 6:11], stress_test[:, 0:5], '.', color='orange')
+            plot(stress_test[:, 6:11], stress_test[:, 0:5], '.', color=color_test)
             legend(handles=legend_train_test)
 else:
     print('NEP预测')
