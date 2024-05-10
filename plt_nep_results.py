@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from pylab import *
+from sklearn.metrics import r2_score
 
 files = ['loss.out', 'energy_train.out', 'energy_test.out', 'force_train.out',
          'force_test.out', 'virial_train.out', 'virial_test.out',
@@ -15,6 +16,12 @@ force_diff = np.reshape(force_train[:,3:6]-force_train[:,0:3], (force_train.shap
 rmse_force = np.sqrt(np.mean(force_diff**2))
 virial_train = virial_train[virial_train[:, 1] > -1000, :]
 rmse_virial = np.sqrt(np.mean((virial_train[:, 0:5] - virial_train[:, 6:11])**2))
+def calculate_r_squared(y_true, y_pred):
+    return r2_score(y_true, y_pred)
+R_energy = calculate_r_squared(energy_train[:, 0], energy_train[:, 1])
+R_force = calculate_r_squared(force_train[:, 3:6], force_train[:, 0:3])
+R_virial = calculate_r_squared(virial_train[:, 0:5], virial_train[:, 6:11])
+R_stress = calculate_r_squared(stress_train[:, 0:5], stress_train[:, 6:11])
 color_train= 'deepskyblue'
 color_test= 'orange'
 legend_train = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train')]
@@ -30,43 +37,47 @@ def replace_this_with_your_code1():
 
 def replace_this_with_your_code2():
     plot(energy_train[:, 1], energy_train[:, 0], '.', color=color_train)
-    plot(linspace(-9,-6.5), linspace(-9,-6.5), '-')
+    plot(linspace(-3.5,-2.5), linspace(-3.5,-2.5), '-')
     xlabel('DFT energy (eV/atom)')
     ylabel('NEP energy (eV/atom)')
     legend(handles=legend_train)
     plt.title(f'RMSE = {1000* rmse_energy:.3f} meV/atom')
+    plt.annotate(f'R² = {R_energy:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
     pass
 
 def replace_this_with_your_code3():
     plot(force_train[:, 3:6], force_train[:, 0:3], '.', color=color_train)
     #plot(force_train[:, 3:6], force_train[:, 0:3], '.')
-    plot(linspace(-60,60), linspace(-60,60), '-')
+    plot(linspace(-10,10), linspace(-10,10), '-')
     xlabel('DFT force (eV/A)')
     ylabel('NEP force (eV/A)')
     legend(handles=legend_train)
     #legend(['train x direction', 'train y direction', 'train z direction'])
     plt.title(f'RMSE = {1000* rmse_force:.3f} meV/A')
+    plt.annotate(f'R² = {R_force:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
     pass
 
 def replace_this_with_your_code4():
     plot(virial_train[:, 6:11], virial_train[:, 0:5], '.', color=color_train)
-    plot(linspace(-5,7), linspace(-5,7), '-')
+    plot(linspace(-3,5), linspace(-3,5), '-')
     xlabel('DFT virial (eV/atom)')
     ylabel('NEP virial (eV/atom)')
     legend(handles=legend_train)
     plt.title(f'RMSE = {1000* rmse_virial:.3f} meV/atom')
+    plt.annotate(f'R² = {R_virial:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
     pass
 
 def replace_this_with_your_code5():
     plot(stress_train[:, 6:11], stress_train[:, 0:5], '.', color=color_train)
-    plot(linspace(-35,55), linspace(-35,55), '-')
-    xlabel('DFT virial (GPa)')
-    ylabel('NEP virial (GPa)')
+    plot(linspace(-10,20), linspace(-10,20), '-')
+    xlabel('DFT stress (GPa)')
+    ylabel('NEP stress (GPa)')
     legend(handles=legend_train)
     plt.title(f'RMSE = {1000* rmse_stress:.3f} mGPa')
+    plt.annotate(f'R² = {R_stress:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
     pass
 
@@ -129,8 +140,8 @@ if os.path.exists('loss.out'):
             plot(energy_test[:, 1], energy_test[:, 0], '.', color=color_test)
             legend(handles=legend_train_test)
             plt.subplot(2,3,3)
-            replace_this_with_your_code3()
             plot(force_test[:, 3:6], force_test[:, 0:3], '.', color=color_test)
+            replace_this_with_your_code3()
             legend(handles=legend_train_test)
             #legend(['train x direction', 'train y direction', 'train z direction', 'test x direction', 'test y direction', 'test z direction'])
             plt.subplot(2,3,4)
@@ -153,7 +164,7 @@ else:
         replace_this_with_your_code4()
     else:
         rmse_stress = np.sqrt(np.mean((stress_train[:, 0:5] - stress_train[:, 6:11])**2))
-        plt.figure(figsize=(10,10))
+        plt.figure(figsize=(10,8))
         plt.subplot(2,2,1)
         replace_this_with_your_code2()
         plt.subplot(2,2,2)
@@ -164,4 +175,3 @@ else:
         replace_this_with_your_code5()
 
 plt.savefig('nep.png', dpi=150, bbox_inches='tight')
-
