@@ -36,7 +36,7 @@ for i in range(len(data)):
         data[i, j] = np.sqrt(abs(data[i, j])) / (2 * np.pi) * np.sign(data[i, j])
 nu = data
 
-""" #qe加这段，vasp不用
+""" #qe需要加这段
 data = np.loadtxt("C.freq.gp")
 x = data[:, 0]
 y_columns = data[:, 1:]
@@ -57,12 +57,12 @@ data_vasp[0] = data_vasp[0] / max_value * max(linear_path) #第一个数是phono
 
 figure(figsize=(10, 8))
 set_fig_properties([gca()])
-plt.scatter(data_vasp.iloc[:, 0], data_vasp.iloc[:, 1], marker='o', edgecolors='C1', facecolors='none')
+plt.plot(data_vasp.iloc[:, 0], data_vasp.iloc[:, 1], linestyle='--', color='C1')
 plot(linear_path, nu[:, 0], color='C0', lw=1)
 plot(linear_path, nu[:, 1:], color='C0', lw=1)
 xlim([0, max(linear_path)])
 gca().set_xticks(sym_points)
-gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$', 'L'])#先注释生成一下图片，看一下最大横坐标，然后再加上
+gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$', 'L'])
 ylim([0, 30])  
 gca().set_yticks(linspace(0, 30, 6))
 ylabel(r'$\nu$ (THz)',fontsize=30)
