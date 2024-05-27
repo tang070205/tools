@@ -5,29 +5,20 @@ from pylab import *
 from sklearn.metrics import r2_score
 
 files = ['loss.out', 'energy_train.out', 'energy_test.out', 'force_train.out',
-         'force_test.out', 'virial_train.out', 'virial_test.out',
-         'stress_train.out', 'stress_test.out']
+         'force_test.out', 'virial_train.out', 'virial_test.out', 'stress_train.out', 'stress_test.out']
 for file in files:
     if os.path.exists(file):
         vars()[file.split('.')[0]] = np.loadtxt(file)
 
-rmse_energy = np.sqrt(np.mean((energy_train[:,0]-energy_train[:,1])**2))
-force_diff = np.reshape(force_train[:,3:6]-force_train[:,0:3], (force_train.shape[0]*3, 1))
-rmse_force = np.sqrt(np.mean(force_diff**2))
-virial_train = virial_train[virial_train[:, 1] > -1000, :]
-rmse_virial = np.sqrt(np.mean((virial_train[:, 0:5] - virial_train[:, 6:11])**2))
 def calculate_r_squared(y_true, y_pred):
     return r2_score(y_true, y_pred)
-R_energy = calculate_r_squared(energy_train[:, 0], energy_train[:, 1])
-R_force = calculate_r_squared(force_train[:, 3:6], force_train[:, 0:3])
-R_virial = calculate_r_squared(virial_train[:, 0:5], virial_train[:, 6:11])
-R_stress = calculate_r_squared(stress_train[:, 0:5], stress_train[:, 6:11])
 color_train= 'deepskyblue'
 color_test= 'orange'
 legend_train = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train')]
-legend_train_test = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train'),plt.Line2D([0], [0], color='orange', marker='.', markersize=6, lw=0, label='test')]
+legend_train_test = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train'),
+                     plt.Line2D([0], [0], color='orange', marker='.', markersize=6, lw=0, label='test')]
 
-def replace_this_with_your_code1():
+def loss_train_code():
     loglog(loss[:, 1:7])
     xlabel('Generation/100')
     ylabel('Loss')
@@ -35,18 +26,30 @@ def replace_this_with_your_code1():
     tight_layout()
     pass
 
-def replace_this_with_your_code2():
+def loss_test_code():
+    loglog(loss[:, 7:10])
+    legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', 'Energy-test', 'Force-test', 'Virial-test'])
+    pass
+
+def energy_train_code():
     plot(energy_train[:, 1], energy_train[:, 0], '.', color=color_train)
     plot(linspace(-3.5,-2.5), linspace(-3.5,-2.5), '-')
     xlabel('DFT energy (eV/atom)')
     ylabel('NEP energy (eV/atom)')
     legend(handles=legend_train)
+    rmse_energy = np.sqrt(np.mean((energy_train[:,0]-energy_train[:,1])**2))
     plt.title(f'RMSE = {1000* rmse_energy:.3f} meV/atom')
+    R_energy = calculate_r_squared(energy_train[:, 0], energy_train[:, 1])
     plt.annotate(f'R² = {R_energy:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
     pass
 
-def replace_this_with_your_code3():
+def energy_test_code():
+    plot(energy_test[:, 1], energy_test[:, 0], '.', color=color_test)
+    legend(handles=legend_train_test)
+    pass
+
+def force_train_code():
     plot(force_train[:, 3:6], force_train[:, 0:3], '.', color=color_train)
     #plot(force_train[:, 3:6], force_train[:, 0:3], '.')
     plot(linspace(-10,10), linspace(-10,10), '-')
@@ -54,31 +57,54 @@ def replace_this_with_your_code3():
     ylabel('NEP force (eV/A)')
     legend(handles=legend_train)
     #legend(['train x direction', 'train y direction', 'train z direction'])
+    force_diff = np.reshape(force_train[:,3:6]-force_train[:,0:3], (force_train.shape[0]*3, 1))
+    rmse_force = np.sqrt(np.mean(force_diff**2))
     plt.title(f'RMSE = {1000* rmse_force:.3f} meV/A')
+    R_force = calculate_r_squared(force_train[:, 3:6], force_train[:, 0:3])
     plt.annotate(f'R² = {R_force:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
     pass
 
-def replace_this_with_your_code4():
-    plot(virial_train[:, 6:11], virial_train[:, 0:5], '.', color=color_train)
+def force_test_code():
+    plot(force_test[:, 3:6], force_test[:, 0:3], '.', color=color_test)
+    legend(handles=legend_train_test)
+    #legend(['test x direction', 'test y direction', 'test z direction', 'train x direction', 'train y direction', 'train z direction'])
+    pass
+
+def virial_train_code():
+    plot(virial_train[:, 6:12], virial_train[:, 0:6], '.', color=color_train)
     plot(linspace(-3,5), linspace(-3,5), '-')
     xlabel('DFT virial (eV/atom)')
     ylabel('NEP virial (eV/atom)')
     legend(handles=legend_train)
+    rmse_virial = np.sqrt(np.mean((virial_train[:, 0:6] - virial_train[:, 6:12])**2))
     plt.title(f'RMSE = {1000* rmse_virial:.3f} meV/atom')
+    R_virial = calculate_r_squared(virial_train[:, 0:6], virial_train[:, 6:12])
     plt.annotate(f'R² = {R_virial:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
     pass
 
-def replace_this_with_your_code5():
-    plot(stress_train[:, 6:11], stress_train[:, 0:5], '.', color=color_train)
+def virial_test_code():
+    plot(virial_test[:, 6:12], virial_test[:, 0:6], '.', color=color_test)
+    legend(handles=legend_train_test)
+    pass
+
+def stress_train_code():
+    plot(stress_train[:, 6:12], stress_train[:, 0:6], '.', color=color_train)
     plot(linspace(-10,20), linspace(-10,20), '-')
     xlabel('DFT stress (GPa)')
     ylabel('NEP stress (GPa)')
     legend(handles=legend_train)
+    rmse_stress = np.sqrt(np.mean((stress_train[:, 0:6] - stress_train[:, 6:12])**2))
     plt.title(f'RMSE = {1000* rmse_stress:.3f} mGPa')
+    R_stress = calculate_r_squared(stress_train[:, 0:6], stress_train[:, 6:12])
     plt.annotate(f'R² = {R_stress:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
+    pass
+
+def stress_test_code():
+    plot(stress_test[:, 6:12], stress_test[:, 0:6], '.', color=color_test)
+    legend(handles=legend_train_test)
     pass
 
 if os.path.exists('loss.out'):
@@ -88,90 +114,76 @@ if os.path.exists('loss.out'):
         if not os.path.exists('stress_train.out'):
             plt.figure(figsize=(12,10))
             plt.subplot(2,2,1)
-            replace_this_with_your_code1()
+            loss_train_code()
             plt.subplot(2,2,2)
-            replace_this_with_your_code2()
+            energy_train_code()
             plt.subplot(2,2,3)
-            replace_this_with_your_code3()
+            force_train_code()
             plt.subplot(2,2,4)
-            replace_this_with_your_code4()
+            virial_train_code()
         else:
-            rmse_stress = np.sqrt(np.mean((stress_train[:, 0:5] - stress_train[:, 6:11])**2))
             plt.figure(figsize=(20,10))
             plt.subplot(2,3,1)
-            replace_this_with_your_code1()
+            loss_train_code()
             plt.subplot(2,3,2)
-            replace_this_with_your_code2()
+            energy_train_code()
             plt.subplot(2,3,3)
-            replace_this_with_your_code3()
+            force_train_code()
             plt.subplot(2,3,4)
-            replace_this_with_your_code4()
+            virial_train_code()
             plt.subplot(2,3,5)
-            replace_this_with_your_code5()
+            stress_train_code()
     else:
         if not os.path.exists('stress_train.out'):
             plt.figure(figsize=(12,10))
             plt.subplot(2,2,1)
-            replace_this_with_your_code1()
-            loglog(loss[:, 7:10])
-            legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', 'Energy-test', 'Force-test', 'Virial-test'])
+            loss_train_code()
+            loss_test_code()
             plt.subplot(2,2,2)
-            replace_this_with_your_code2()
-            plot(energy_test[:, 1], energy_test[:, 0], '.', color=color_test)
-            legend(handles=legend_train_test)
+            energy_train_code()
+            energy_test_code()
             plt.subplot(2,2,3)
-            replace_this_with_your_code3()
-            plot(force_test[:, 3:6], force_test[:, 0:3], '.', color=color_test)
-            legend(handles=legend_train_test)
-            #legend(['test x direction', 'test y direction', 'test z direction', 'train x direction', 'train y direction', 'train z direction'])
+            force_train_code()
+            force_test_code()
             plt.subplot(2,2,4)
-            replace_this_with_your_code4()
-            plot(virial_test[:, 6:11], virial_test[:, 0:5], '.', color=color_test)
-            legend(handles=legend_train_test)
+            virial_train_code()
+            virial_test_code()
         else:
-            rmse_stress = np.sqrt(np.mean((stress_train[:, 0:5] - stress_train[:, 6:11])**2))
             plt.figure(figsize=(20,10))
             plt.subplot(2,3,1)
-            replace_this_with_your_code1()
-            loglog(loss[:, 7:10])
-            legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', 'Energy-test', 'Force-test', 'Virial-test'])
+            loss_train_code()
+            loss_test_code()
             plt.subplot(2,3,2)
-            replace_this_with_your_code2()
-            plot(energy_test[:, 1], energy_test[:, 0], '.', color=color_test)
-            legend(handles=legend_train_test)
+            energy_train_code()
+            energy_test_code()
             plt.subplot(2,3,3)
-            plot(force_test[:, 3:6], force_test[:, 0:3], '.', color=color_test)
-            replace_this_with_your_code3()
-            legend(handles=legend_train_test)
-            #legend(['train x direction', 'train y direction', 'train z direction', 'test x direction', 'test y direction', 'test z direction'])
+            force_train_code()
+            force_test_code()
             plt.subplot(2,3,4)
-            replace_this_with_your_code4()
-            plot(virial_test[:, 6:11], virial_test[:, 0:5], '.', color=color_test)
-            legend(handles=legend_train_test)
+            virial_train_code()
+            virial_test_code()
             plt.subplot(2,3,5)
-            replace_this_with_your_code5()
-            plot(stress_test[:, 6:11], stress_test[:, 0:5], '.', color=color_test)
-            legend(handles=legend_train_test)
+            stress_train_code()
+            stress_test_code()
 else:
     print('NEP预测')
     if not os.path.exists('stress_train.out'):
         plt.figure(figsize=(15,5))
         plt.subplot(1,3,1)
-        replace_this_with_your_code2()
+        energy_train_code()
         plt.subplot(1,3,2)
-        replace_this_with_your_code3()
+        force_train_code()
         plt.subplot(1,3,3)
-        replace_this_with_your_code4()
+        virial_train_code()
     else:
-        rmse_stress = np.sqrt(np.mean((stress_train[:, 0:5] - stress_train[:, 6:11])**2))
         plt.figure(figsize=(10,8))
         plt.subplot(2,2,1)
-        replace_this_with_your_code2()
+        energy_train_code()
         plt.subplot(2,2,2)
-        replace_this_with_your_code3()
+        force_train_code()
         plt.subplot(2,2,3)
-        replace_this_with_your_code4()
+        virial_train_code()
         plt.subplot(2,2,4)
-        replace_this_with_your_code5()
+        stress_train_code()
 
 plt.savefig('nep.png', dpi=150, bbox_inches='tight')
