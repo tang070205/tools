@@ -1,6 +1,7 @@
 aimd-OUTCARs-xyz2POSCAR.py is to extract the structure for aimd, then separate it, and then use ovito to derive a POSCAR for each single point energy to be calculated.
 
 create-strain_deform-rattle-perturb.py is to generate a training set using hiphive and dpdata.
+create-perturb.py is only useing dpdata but usually is enough.
 
 create_phonon_compare.py is to compare the phonon dispersion of GPUMD and VASP (or QE).
 
