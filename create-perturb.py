@@ -27,12 +27,12 @@ def main(perturbations):
         perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=perturbations,
                                                             cell_pert_fraction=0.03,
                                                             atom_pert_distance=0.15,
-                                                            atom_pert_style='normal')
+                                                            atom_pert_style='uniforml')
         for j in range(perturbations):  # Generate specified number of perturbed structures and folders
             train_directory = f'train-{j+1}'
             os.makedirs(train_directory, exist_ok=True)
             poscar_filename = f'POSCAR{j+1}'
-            perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=k)
+            perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=j)
             shutil.move(poscar_filename, os.path.join(train_directory, 'POSCAR'))
         os.chdir('..')
     os.chdir(original_cwd)
