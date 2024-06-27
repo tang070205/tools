@@ -153,8 +153,8 @@ for i in range(1, 7): #几个原始构型就写到几+1，我这是6个原始构
         directory = os.getcwd()
         perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=25,
                                                            cell_pert_fraction=0.03,
-                                                           atom_pert_distance=0.2,
-                                                           atom_pert_style='normal')
+                                                           atom_pert_distance=0.15,
+                                                           atom_pert_style='uniform')
 
         for k in range(25):
             poscar_filename = f'POSCAR{k+1}'
