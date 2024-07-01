@@ -96,7 +96,7 @@ def stress_train_code():
     ylabel('NEP stress (GPa)')
     legend(handles=legend_train)
     rmse_stress = np.sqrt(np.mean((stress_train[:, 0:6] - stress_train[:, 6:12])**2))
-    plt.title(f'RMSE = {1000* rmse_stress:.3f} mGPa')
+    plt.title(f'RMSE = {1000* rmse_stress:.3f} MPa')
     R_stress = calculate_r_squared(stress_train[:, 0:6], stress_train[:, 6:12])
     plt.annotate(f'R² = {R_stress:.3f}',xy=(0.7, 0.4), xycoords='axes fraction')
     tight_layout()
