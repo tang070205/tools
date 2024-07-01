@@ -12,11 +12,11 @@ struc_UC
 struc = struc_UC.repeat([1,1,1])
 struc.wrap()
 struc = struc.repeat([10,10,1])
-write("model.xyz", Si)
+write("model.xyz", struc)
 
 struc.write_basis()
-special_points = {'G': [0, 0, 0], 'M': [0.5, 0.5, 0], 'K': [0.375, 0.375, 0.75], 'G': [0, 0, 0], 'L': [0.5, 0.5, 0.5]}
-linear_path, sym_points, labels = struc_UC.write_kpoints(path='GMKGL', npoints=400, special_points=special_points) 
+special_points = {'G': [0, 0, 0], 'M': [0.5, 0, 0], 'K': [0.3333, 0.3333, 0], 'G': [0, 0, 0]}
+linear_path, sym_points, labels = struc_UC.write_kpoints(path='GMKG', npoints=400, special_points=special_points) 
 
 
 def set_fig_properties(ax_list):
@@ -36,7 +36,7 @@ for i in range(len(data)):
         data[i, j] = np.sqrt(abs(data[i, j])) / (2 * np.pi) * np.sign(data[i, j])
 nu = data
 
-""" #qe需要加这段
+""" #qe加这段，vasp不用
 data = np.loadtxt("C.freq.gp")
 x = data[:, 0]
 y_columns = data[:, 1:]
@@ -51,20 +51,29 @@ data[:, 1] = data[:, 1] / 33.35641
 np.savetxt("phonon.out", data, comments='', fmt='%1.6f')
 """
 
-data_vasp = pd.read_csv('phonon.out', delim_whitespace=True, header=None)
-max_value = data_vasp[0].max()
-data_vasp[0] = data_vasp[0] / max_value * max(linear_path) #第一个数是phonon.out文件最大横坐标，第二个文件时omega2最大横坐标
+data_vasp = np.loadtxt('phonon.out')
+max_value = data_vasp[2:,0].max()
+data_vasp[2:,0] = data_vasp[2:,0] / max_value * max(linear_path) #第一个数是phonon.out文件最大横坐标，第二个文件时omega2最大横坐标
+with open('phonon.out', 'r') as file:
+    lines = file.readlines()
+    M_point = float(lines[1].strip().split()[2])
+    K_point = float(lines[1].strip().split()[3])
 
-figure(figsize=(10, 8))
+figure(figsize=(9, 8))
 set_fig_properties([gca()])
-plt.plot(data_vasp.iloc[:, 0], data_vasp.iloc[:, 1], linestyle='--', color='C1')
+plt.scatter(data_vasp[2:, 0], data_vasp[2:, 1], marker='.', edgecolors='C1', facecolors='none')
 plot(linear_path, nu[:, 0], color='C0', lw=1)
 plot(linear_path, nu[:, 1:], color='C0', lw=1)
 xlim([0, max(linear_path)])
+plt.axvline(M_point / max_value * max(linear_path), color='black', linestyle='--')  
+plt.axvline(K_point / max_value * max(linear_path), color='black', linestyle='--')  
 gca().set_xticks(sym_points)
-gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$', 'L'])
-ylim([0, 30])  
-gca().set_yticks(linspace(0, 30, 6))
-ylabel(r'$\nu$ (THz)',fontsize=30)
+gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$'])
+ylim([0, 32])  
+gca().set_yticks(range(0, 32, 5))
+ylabel(r'$\nu$ (THz)',fontsize=15)
+legend(['DFT', 'NEP'])
 savefig('phonon.png')
+
+
             
