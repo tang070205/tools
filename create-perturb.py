@@ -2,7 +2,7 @@
     Purpose:
         对已有不同原型结构，利用dpdatapython包生成晶格+原子坐标都微扰(perturbed_system) 
     Notice:
-        准备好原始构型、INCAR-single,KPOINT和POTCAR由vaspkit生成， 
+        准备好原始构型POSCAR-*、INCAR-single,KPOINT和POTCAR由vaspkit生成， 
         然后python3 create-perturb.py 25即可对一个初始结构生成25个微扰结构和文件夹
 """
 
