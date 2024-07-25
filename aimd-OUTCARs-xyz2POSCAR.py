@@ -4,8 +4,6 @@ import sys
 import os
 import shutil
 import subprocess
-from ovito.io import import_file, export_file
-from ovito.modifiers import WrapPeriodicImagesModifier
 
 label='aimd'
 os.system("find . -name vasprun.xml > xmllist")
@@ -40,6 +38,8 @@ for line in open('xmllist'):
 os.system("rm xmllist")
 
 def main(number_structures):
+    original_cwd = os.getcwd()
+
     with open("aimd.xyz", "r") as input_file:
         first_line = input_file.readline()
         try:
@@ -47,13 +47,16 @@ def main(number_structures):
         except ValueError:
             print("第一行内容不能转换为整数")
         total_lines = sum(1 for _ in input_file) + 1
+        print(structure_lines)
+        print(total_lines)
         structures_count = total_lines // structure_lines
+        print(structures_count)
 
     output_lines = []
     with open("aimd.xyz", "r") as input_file:
         lines = input_file.readlines()
         for i in range(number_structures):
-            start_index = structure_lines * (structures_count // number_structures * (i+1) - 1)
+            start_index = structure_lines * (structures_count // number_structures * (i+1))
             output_lines += lines[start_index:start_index + structure_lines]
 
     with open("dump.xyz", "w") as output_file:
@@ -63,46 +66,38 @@ def main(number_structures):
         if not os.path.exists('train_folders'):
             os.makedirs('train_folders')
         for i in range(number_structures):
-            folder_name = f'train-{i+1}'
+            folder_name = f'aimd-{i+1}'
             folder_path = os.path.join('train_folders', folder_name)
             os.makedirs(folder_path)
 
-    def split_train_xyz():
+    def split_xyz():
         with open('dump.xyz', 'r') as file:
-            lines = file.readlines()
-        group_size = structure_lines  
-        num_groups = len(lines) // group_size
+            lines = file.readlines()  
+        num_groups = len(lines) // structure_lines
         for i in range(num_groups):
-            start_index = i * group_size
-            end_index = start_index + group_size
+            start_index = i * structure_lines
+            end_index = start_index + structure_lines
             group_lines = lines[start_index:end_index]
-            group_filename = f'train_group{i + 1}.xyz'
-            group_filepath = os.path.join('train_folders', f'train-{i + 1}', group_filename)
+            group_filepath = os.path.join('train_folders', f'aimd-{i + 1}', f'aimd-{i + 1}.xyz')
             with open(group_filepath, 'w') as group_file:
                 group_file.writelines(group_lines)
 
-    def convert_train_xyz_to_poscar():
+    def convert_xyz_to_poscar():
         train_folder_path = os.path.join(os.getcwd(), 'train_folders')
         folders = os.listdir(train_folder_path)
         for folder_name in folders:
             folder_path = os.path.join(train_folder_path, folder_name)
-            xyz_files = [f for f in os.listdir(folder_path) if f.endswith('.xyz')]
-            for xyz_file in xyz_files:
-                xyz_filepath = os.path.join(folder_path, xyz_file)
-                poscar_filepath = os.path.join(folder_path, xyz_file.replace('.xyz', '.vasp'))
-                pipeline = import_file(xyz_filepath)
-                pipeline.modifiers.append(WrapPeriodicImagesModifier())
-                export_file(pipeline, poscar_filepath, 'vasp')
-                new_poscar_filepath = os.path.join(folder_path, 'POSCAR')
-                os.rename(poscar_filepath, new_poscar_filepath)
+            os.chdir(folder_path)
+            xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
+            write("POSCAR", read(xyz_file, format="extxyz"))
 
     create_train_folders()
-    split_train_xyz()
-    convert_train_xyz_to_poscar()
+    split_xyz()
+    convert_xyz_to_poscar()
 
-    original_cwd = os.getcwd()  
+    os.chdir(original_cwd)
     for j in range(number_structures):
-        folder_name = f'train-{j+1}' 
+        folder_name = f'aimd-{j+1}' 
         folder_path = os.path.join('train_folders', folder_name)  
         shutil.copyfile('INCAR-single', os.path.join(folder_path, 'INCAR'))  #INCAR-single是计算单点能的INCAR
         os.chdir(folder_path) 
@@ -112,7 +107,7 @@ def main(number_structures):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 perturb.py <number_of_structures>")
+        print("Usage: python3 aimd-OUTCARs-xyz2POSCAR.py <number_structures>")
         sys.exit(1)
 
     number_structures = int(sys.argv[1])
