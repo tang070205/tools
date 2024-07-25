@@ -56,7 +56,7 @@ def main(number_structures):
     with open("aimd.xyz", "r") as input_file:
         lines = input_file.readlines()
         for i in range(number_structures):
-            start_index = structure_lines * (structures_count // number_structures * (i+1))
+            start_index = structure_lines * (structures_count // number_structures * (i+1) - 1)
             output_lines += lines[start_index:start_index + structure_lines]
 
     with open("dump.xyz", "w") as output_file:
