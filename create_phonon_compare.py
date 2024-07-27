@@ -1,7 +1,6 @@
 from pylab import *
 from ase.io import read,write
 from gpyumd.atoms import GpumdAtoms
-from gpyumd.load import load_omega2
 import pandas as pd
 import numpy as np
 
@@ -56,17 +55,17 @@ max_value = data_vasp[2:,0].max()
 data_vasp[2:,0] = data_vasp[2:,0] / max_value * max(linear_path) #第一个数是phonon.out文件最大横坐标，第二个文件时omega2最大横坐标
 with open('phonon.out', 'r') as file:
     lines = file.readlines()
-    M_point = float(lines[1].strip().split()[2])
-    K_point = float(lines[1].strip().split()[3])
+values = lines[1].strip().split()
 
 figure(figsize=(9, 8))
 set_fig_properties([gca()])
 plt.scatter(data_vasp[2:, 0], data_vasp[2:, 1], marker='.', edgecolors='C1', facecolors='none')
-plot(linear_path, nu[:, 0], color='C0', lw=1)
-plot(linear_path, nu[:, 1:], color='C0', lw=1)
+plot(linear_path, nu, color='C0', lw=1))
 xlim([0, max(linear_path)])
-plt.axvline(M_point / max_value * max(linear_path), color='black', linestyle='--')  
-plt.axvline(K_point / max_value * max(linear_path), color='black', linestyle='--')  
+for value in values[2:-1]:
+    float_value = float(value)
+    plt.axvline(float_value / max_value * max(linear_path), color='black', linestyle='--')
+    print(float_value)  
 gca().set_xticks(sym_points)
 gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$'])
 ylim([0, 32])  
