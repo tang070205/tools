@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 
+#这部分使用了叠加态大佬的代码，往网址：https://zhuanlan.zhihu.com/p/397866915
 label='aimd'
 os.system("find . -name vasprun.xml > xmllist")
 os.system("if [ -f 'screen_tmp' ]; then rm screen_tmp;fi")
