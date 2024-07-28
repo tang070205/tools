@@ -5,8 +5,6 @@ create-perturb.py is only useing dpdata but usually is enough.
 
 create_phonon_compare.py is to compare the phonon dispersion of GPUMD and VASP (or QE).
 
-database2xyz.py is to extract .db format files, which may not be universal for the time being.
-
 dumpxyz2POSCAR.py It's a scaled-down version of aimd, a POSCAR exported directly to the GPUMD output dump.xyz with ase
 
 plot_hnemd_multiple.py is a drawing of the hnemd method computed many times using the GPUMD software package.
