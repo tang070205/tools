@@ -1,8 +1,7 @@
+import numpy as np
 from pylab import *
 from ase.io import read,write
 from gpyumd.atoms import GpumdAtoms
-import pandas as pd
-import numpy as np
 
 struc_UC = read('POSCAR') #xyz、cif文件也可以
 struc_UC = GpumdAtoms(struc_UC)
@@ -60,7 +59,7 @@ values = lines[1].strip().split()
 figure(figsize=(9, 8))
 set_fig_properties([gca()])
 plt.scatter(data_vasp[2:, 0], data_vasp[2:, 1], marker='.', edgecolors='C1', facecolors='none')
-plot(linear_path, nu, color='C0', lw=1))
+plot(linear_path, nu, color='C0', lw=1)
 xlim([0, max(linear_path)])
 for value in values[2:-1]:
     float_value = float(value)
