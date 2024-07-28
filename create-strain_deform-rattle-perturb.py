@@ -7,17 +7,17 @@
         hiphive导出POSCAR好像有bug，所以先输出了xyz再转换成POSCAR，扩胞后的perturb没写(应该够了)
         准备好原始构型、INCAR、POTCAR 直接python3 create-strain_deform-rattle-perturb.py即可
 """
-import numpy as np
-from ase.io import write,read
-from hiphive.structure_generation.rattle import generate_mc_rattled_structures
-from ovito.io import import_file, export_file
-from ovito.modifiers import WrapPeriodicImagesModifier
+
 import os
 import shutil
 import subprocess
 import dpdata
 import string
+import numpy as np
+from ase.io import write,read
+from hiphive.structure_generation.rattle import generate_mc_rattled_structures
 
+original_cwd = os.getcwd()
 prototype_structures = {}
 prototype_structures['1'] = read('POSCAR1') #读取原型结构，想读几个写几个
 prototype_structures['2'] = read('POSCAR2') #
@@ -55,28 +55,22 @@ for name, prim in prototype_structures.items():
         training_structures.append(prim_deformed)
 
 for i, structure in enumerate(training_structures):
-    folder_name = f'train-{i+1}'
+    folder_name = f'strain-deform-{i+1}'
     folder_path = os.path.join(strain_deform_folder, folder_name)
     os.makedirs(folder_path, exist_ok=True)
     output_file_path = os.path.join(folder_path, f'structure_{i+1}.xyz')
     structure.info['config_type'] = f'structure_{i+1}'
     structure.write(output_file_path, format='extxyz')
 
-def convert_train_xyz_to_poscar():
+def convert_xyz_to_poscar():
      train_folder_path = os.path.join(os.getcwd(), 'strain_deform')
      folders = os.listdir(train_folder_path)
      for folder_name in folders:
          folder_path = os.path.join(train_folder_path, folder_name)
-         xyz_files = [f for f in os.listdir(folder_path) if f.endswith('.xyz')]
-         for xyz_file in xyz_files:
-             xyz_filepath = os.path.join(folder_path, xyz_file)
-             poscar_filepath = os.path.join(folder_path, xyz_file.replace('.xyz', '.vasp'))
-             pipeline = import_file(xyz_filepath)
-             pipeline.modifiers.append(WrapPeriodicImagesModifier())
-             export_file(pipeline, poscar_filepath, 'vasp')
-             new_poscar_filepath = os.path.join(folder_path, 'POSCAR')
-             os.rename(poscar_filepath, new_poscar_filepath)
-convert_train_xyz_to_poscar()
+         os.chdir(folder_path)
+         xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
+         write("POSCAR", read(xyz_file, format="extxyz"))
+convert_xyz_to_poscar()
 
 print('Number of training structures:', len(training_structures))
 
@@ -110,21 +104,15 @@ for name, prim in prototype_structures.items():
                 rattled_structure.info['config_type'] = f'{name}_size_{size}_iter_{it}_structure_{i}'
                 rattled_structure.write(structure_file_path, format='extxyz')
 
-def convert_train_xyz_to_poscar():
+def convert_xyz_to_poscar():
      train_folder_path = os.path.join(os.getcwd(), 'rattle')
      folders = os.listdir(train_folder_path)
      for folder_name in folders:
          folder_path = os.path.join(train_folder_path, folder_name)
-         xyz_files = [f for f in os.listdir(folder_path) if f.endswith('.xyz')]
-         for xyz_file in xyz_files:
-             xyz_filepath = os.path.join(folder_path, xyz_file)
-             poscar_filepath = os.path.join(folder_path, xyz_file.replace('.xyz', '.vasp'))
-             pipeline = import_file(xyz_filepath)
-             pipeline.modifiers.append(WrapPeriodicImagesModifier())
-             export_file(pipeline, poscar_filepath, 'vasp')
-             new_poscar_filepath = os.path.join(folder_path, 'POSCAR')
-             os.rename(poscar_filepath, new_poscar_filepath)
-convert_train_xyz_to_poscar()
+         os.chdir(folder_path)
+         xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
+         write("POSCAR", read(xyz_file, format="extxyz"))
+convert_xyz_to_poscar()
 
 def remove_parentheses(directory):
     for root, dirs, files in os.walk(directory, topdown=False):
@@ -148,7 +136,7 @@ for i in range(1, 7): #几个原始构型就写到几+1，我这是6个原始构
     os.chdir(perturb_directory)
 
     for j in range(1, 26): #与下面两个25对应，生成25个微扰结构和文件夹
-        train_directory = f'train-{j}'
+        train_directory = f'perturb-{i}-{j}'
         os.makedirs(train_directory, exist_ok=True)
         directory = os.getcwd()
         perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=25,
@@ -156,10 +144,9 @@ for i in range(1, 7): #几个原始构型就写到几+1，我这是6个原始构
                                                            atom_pert_distance=0.15,
                                                            atom_pert_style='uniform')
 
-        for k in range(25):
-            poscar_filename = f'POSCAR{k+1}'
-            perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=k)
-            shutil.move(poscar_filename, os.path.join(train_directory, 'POSCAR'))
+        poscar_filename = f'POSCAR{j}'
+        perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=j)
+        shutil.move(poscar_filename, os.path.join(train_directory, 'POSCAR'))
     os.chdir('..')
 os.chdir(original_cwd)
 
