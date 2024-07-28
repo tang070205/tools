@@ -12,7 +12,6 @@ import os
 import shutil
 import subprocess
 import dpdata
-import string
 import numpy as np
 from ase.io import write,read
 from hiphive.structure_generation.rattle import generate_mc_rattled_structures
