@@ -71,7 +71,7 @@ def convert_xyz_to_poscar():
          xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
          write("POSCAR", read(xyz_file, format="extxyz"))
 convert_xyz_to_poscar()
-
+os.chdir(original_cwd)
 print('Number of training structures:', len(training_structures))
 
 n_structures = 10 #生成个数
@@ -113,6 +113,7 @@ def convert_xyz_to_poscar():
          xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
          write("POSCAR", read(xyz_file, format="extxyz"))
 convert_xyz_to_poscar()
+os.chdir(original_cwd)
 
 def remove_parentheses(directory):
     for root, dirs, files in os.walk(directory, topdown=False):
@@ -143,9 +144,9 @@ for i in range(1, 7): #几个原始构型就写到几+1，我这是6个原始构
                                                            cell_pert_fraction=0.03,
                                                            atom_pert_distance=0.15,
                                                            atom_pert_style='uniform')
-
-        poscar_filename = f'POSCAR{j}'
-        perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=j)
+    for k in range(25):
+        poscar_filename = f'POSCAR{k+1}'
+        perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=k)
         shutil.move(poscar_filename, os.path.join(train_directory, 'POSCAR'))
     os.chdir('..')
 os.chdir(original_cwd)
@@ -159,7 +160,7 @@ for folder_name in os.listdir(original_cwd):
             if os.path.isdir(subfolder_path):
                 shutil.copy("INCAR", subfolder_path)
                 os.chdir(subfolder_path)
-                vaspkit_command = "vaspkit -task 102 -kpr 0.04" #K-Spacing取0.04
+                vaspkit_command = "vaspkit -task 102 -kpr 0.025" #K-Spacing取0.04
                 subprocess.run(vaspkit_command, shell=True)
                 os.chdir(original_cwd)
 
