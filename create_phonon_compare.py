@@ -48,7 +48,7 @@ data = np.loadtxt("phonon_data.txt")
 data[:, 1] = data[:, 1] / 33.35641
 np.savetxt("phonon.out", data, comments='', fmt='%1.6f')
 """
-
+#没有phonopy-bandplot --gnuplot > phonon.out这样生成phonon.out，就不加这段和下面俩加vasp注释的，相当于只画gpumd的结果，
 data_vasp = np.loadtxt('phonon.out')
 max_value = data_vasp[2:,0].max()
 data_vasp[2:,0] = data_vasp[2:,0] / max_value * max(linear_path) #第一个数是phonon.out文件最大横坐标，第二个文件时omega2最大横坐标
@@ -58,10 +58,10 @@ values = lines[1].strip().split()
 
 figure(figsize=(9, 8))
 set_fig_properties([gca()])
-plt.scatter(data_vasp[2:, 0], data_vasp[2:, 1], marker='.', edgecolors='C1', facecolors='none')
+plt.scatter(data_vasp[2:, 0], data_vasp[2:, 1], marker='.', edgecolors='C1', facecolors='none')#vasp
 plot(linear_path, nu, color='C0', lw=1)
 xlim([0, max(linear_path)])
-for value in values[2:-1]:
+for value in values[2:-1]: #vasp，这一整个for循环
     float_value = float(value)
     plt.axvline(float_value / max_value * max(linear_path), color='black', linestyle='--')
     print(float_value)  
@@ -70,7 +70,7 @@ gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$'])
 ylim([0, 32])  
 gca().set_yticks(range(0, 32, 5))
 ylabel(r'$\nu$ (THz)',fontsize=15)
-legend(['DFT', 'NEP'])
+legend(['DFT', 'NEP']) #只画gpumd就只用NEP图例即可，或者不加图例
 savefig('phonon.png')
 
 
