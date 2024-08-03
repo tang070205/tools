@@ -33,21 +33,20 @@ ncounts1 = [natoms1 * count for count in group_cyclical_1]
 ncounts2 = [natoms2 * count for count in group_cyclical_2]
 ncounts = ncounts1
 #ncounts[-1] = ncounts1[-1] + ncounts2[0]
-ncounts.extend(ncounts2[0:])
+ncounts.extend(ncounts2[0:]) #如果想要界面在一组里，把0改成1，并取消上一行的注释
 split1 = split_group(group_cyclical_1, ucl1)
 split2 = split_group(group_cyclical_2, ucl2)
 split = split1
 #split[-1] = split1[-1] + split2[0]
-split.extend(split2[0:])
+split.extend(split2[0:]) #同上
 split = [-1] + list(np.cumsum(split))
-#split[-1] += 1
 print("direction boundaries:", [round(l,2) for l in split])
 print("atoms per group:", ncounts)
 
 group_id = []
 for atom in struc:
     n = atom.position[-3] if dic == 'x' else atom.position[-2] if dic == 'y' else atom.position[-1]
-    for i in range(len(group_cyclical_1) + len(group_cyclical_2)):
+    for i in range(len(group_cyclical_1) + len(group_cyclical_2)): #如果想要界面在一组里，range()里面要减1
         if n > split[i] and n < split[i + 1]:
             group_index = i
     group_id.append(group_index)
