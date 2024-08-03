@@ -15,7 +15,6 @@ def split_group(input_list, ucl):
 ncounts = [natoms * count for count in group_cyclical]
 split = split_group(group_cyclical, ucl)
 split = [-1] + list(np.cumsum(split))
-split[-1] += 1
 print("direction boundaries:", [round(l,2) for l in split])
 print("atoms per group:", ncounts)
 
