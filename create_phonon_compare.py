@@ -1,31 +1,26 @@
 import numpy as np
 from pylab import *
 from ase.io import read,write
-from gpyumd.atoms import GpumdAtoms
 
-struc_UC = read('POSCAR') #xyz、cif文件也可以
-struc_UC = GpumdAtoms(struc_UC)
-struc_UC.add_basis()
-struc_UC
-struc = struc_UC.repeat([1,1,1])
-struc.wrap()
-struc = struc.repeat([10,10,1])
+uc = read('POSCAR-unitcell') #xyz、cif文件也可以
+cx,cy,cz = 20, 20, 1
+struc = uc * (cx,cy,cz)
 write("model.xyz", struc)
 
-struc.write_basis()
+with open('basis.in', 'w') as f:
+    f.write(f"{len(uc)}\n")
+    for i, mass in enumerate(uc.get_masses()):
+        f.write(f"{i} {mass}\n")
+    for _ in range(cx*cy*cz): 
+        for i in range(len(uc)):
+            f.write(f"{i}\n")
+
 special_points = {'G': [0, 0, 0], 'M': [0.5, 0, 0], 'K': [0.3333, 0.3333, 0], 'G': [0, 0, 0]}
-linear_path, sym_points, labels = struc_UC.write_kpoints(path='GMKG', npoints=400, special_points=special_points) 
-
-
-def set_fig_properties(ax_list):
-    tl = 10
-    tw = 3
-    tlm = 6
-
-    for ax in ax_list:
-        ax.tick_params(which='major', length=tl, width=tw)
-        ax.tick_params(which='minor', length=tlm, width=tw)
-        ax.tick_params(which='both', axis='both', direction='in', labelsize=18, right=True, top=True)
+path = uc.cell.bandpath(path='GMKG', npoints = 400, special_points=special_points) #这里的npoints不饿能在外面单独设置，要不可以和下面的400公用一个单独定义的npoints
+kpath, sym_points, labels = path.get_linear_kpoint_axis()
+gpumd_kpts = np.matmul(path.kpts, uc.cell.reciprocal() * 2 * np.pi)
+gpumd_kpts[np.abs(gpumd_kpts) < 1e-15] = 0.0
+np.savetxt('kpoints.in', gpumd_kpts, header=str(400), comments='', fmt='%g') #这里的400要和npoints等于的数一致
 
 data = np.loadtxt("omega2.out")
 
@@ -48,27 +43,26 @@ data = np.loadtxt("phonon_data.txt")
 data[:, 1] = data[:, 1] / 33.35641
 np.savetxt("phonon.out", data, comments='', fmt='%1.6f')
 """
-#没有phonopy-bandplot --gnuplot > phonon.out这样生成phonon.out，就不加这段和下面俩加vasp注释的，相当于只画gpumd的结果，
+#没有phonopy-bandplot --gnuplot > phonon.out这样生成phonon.out，就不加这段和下面仨加vasp注释的，相当于只画gpumd的结果
 data_vasp = np.loadtxt('phonon.out')
 max_value = data_vasp[2:,0].max()
-data_vasp[2:,0] = data_vasp[2:,0] / max_value * max(linear_path) #第一个数是phonon.out文件最大横坐标，第二个文件时omega2最大横坐标
-with open('phonon.out', 'r') as file:
+data_vasp[2:,0] = data_vasp[2:,0] / max_value * max(kpath) #第一个数是phonon.out文件最大横坐标，第二个文件时omega2最大横坐标
+with open('phonon.out', 'r') as file: #vasp，以下三行
     lines = file.readlines()
 values = lines[1].strip().split()
 
 figure(figsize=(9, 8))
-set_fig_properties([gca()])
 plt.scatter(data_vasp[2:, 0], data_vasp[2:, 1], marker='.', edgecolors='C1', facecolors='none')#vasp
-plot(linear_path, nu, color='C0', lw=1)
-xlim([0, max(linear_path)])
+plot(kpath, nu, color='C0', lw=1)
+xlim([0, max(kpath)])
 for value in values[2:-1]: #vasp，这一整个for循环
     float_value = float(value)
-    plt.axvline(float_value / max_value * max(linear_path), color='black', linestyle='--')
+    plt.axvline(float_value / max_value * max(kpath), color='black', linestyle='--')
     print(float_value)  
 gca().set_xticks(sym_points)
 gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$'])
-ylim([0, 32])  
-gca().set_yticks(range(0, 32, 5))
+ylim([0, 6])  
+gca().set_yticks(range(0, 7, 1))
 ylabel(r'$\nu$ (THz)',fontsize=15)
 legend(['DFT', 'NEP']) #只画gpumd就只用NEP图例即可，或者不加图例
 savefig('phonon.png')
