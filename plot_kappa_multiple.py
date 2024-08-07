@@ -26,7 +26,7 @@ with open('run.in', 'r') as file:
 
 one_lines = run_value / compute_hnemd
 kappa = np.loadtxt('kappa.out', max_rows = int(sys.argv[1]) * int(one_lines))
-file_datas = np.split(np.genfromtxt('kappa.out'), int(sys.argv[1]))
+file_datas = np.split(kappa, int(sys.argv[1]))
 t = np.arange(1, one_lines + 1) * 0.001 * time_step
 xlimit = int(run_value / 1000000 * time_step)
 
