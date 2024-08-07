@@ -2,7 +2,8 @@ import sys
 import numpy as np
 from pylab import *
 import matplotlib.pyplot as plt
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumtrapz #scipy<=1.13
+#from scipy.integrate import cumulative_trapezoid #scipy>=1.14
 
 def main():
     if len(sys.argv) != 3:
@@ -31,7 +32,8 @@ t = np.arange(1, one_lines + 1) * 0.001 * time_step
 xlimit = int(run_value / 1000000 * time_step)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
-    return cumtrapz(y, x, initial=0) / x
+    return cumtrapz(y, x, initial=0) / x scipy<=1.13
+    #return cumulative_trapezoid(y, x, initial=0) / x #scipy>=1.14
 
 if sys.argv[2] == 'x' or sys.argv[2] == 'y':
     plt.figure(figsize=(17, 5))
