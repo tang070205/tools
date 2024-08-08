@@ -16,14 +16,11 @@ with open('run.in', 'r') as file:
     for line in file:
         line = line.strip()
         if 'time_step' in line:
-            parts = line.split()
-            time_step = int(parts[1])
-        elif 'compute_hnemd' in line:
-            parts = line.split()
-            compute_hnemd = int(parts[1])
+            time_step = int(line.split()[1])
+        elif 'compute_hnemd' in line:)
+            compute_hnemd = int(line.split()[1])
         elif 'run' in line:
-            parts = line.split()
-            run_value = int(parts[1])
+            run_value = int(line.split()[1])
 
 one_lines = run_value / compute_hnemd
 kappa = np.loadtxt('kappa.out', max_rows = int(sys.argv[1]) * int(one_lines))
