@@ -18,15 +18,14 @@ with open('run.in', 'r') as file:
         if 'time_step' in line:
             time_step = int(line.split()[1])
         elif 'compute_hnemd' in line:)
-            compute_hnemd = int(line.split()[1])
-        elif 'run' in line:
-            run_value = int(line.split()[1])
+            hnemd_sample = int(line.split()[1])
 
-one_lines = run_value / compute_hnemd
+run_time = 10000000
+one_lines = run_time / hnemd_sample
 kappa = np.loadtxt('kappa.out', max_rows = int(sys.argv[1]) * int(one_lines))
 file_datas = np.split(kappa, int(sys.argv[1]))
 t = np.arange(1, one_lines + 1) * 0.001 * time_step
-xlimit = int(run_value / 1000000 * time_step)
+xlimit = int(run_time / 1000000 * time_step)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     return cumtrapz(y, x, initial=0) / x scipy<=1.13
