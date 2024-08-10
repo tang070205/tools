@@ -16,7 +16,7 @@ with open('basis.in', 'w') as f:
             f.write(f"{i}\n")
 
 special_points = {'G': [0, 0, 0], 'M': [0.5, 0, 0], 'K': [0.3333, 0.3333, 0], 'G': [0, 0, 0]}
-path = uc.cell.bandpath(path='GMKG', npoints = 400, special_points=special_points) #这里的npoints不饿能在外面单独设置，要不可以和下面的400公用一个单独定义的npoints
+path = uc.cell.bandpath(path='GMKG', npoints = 400, special_points=special_points) #这里的npoints不能在外面单独设置，要不可以和下面的400共用一个单独定义的npoints
 kpath, sym_points, labels = path.get_linear_kpoint_axis()
 gpumd_kpts = np.matmul(path.kpts, uc.cell.reciprocal() * 2 * np.pi)
 gpumd_kpts[np.abs(gpumd_kpts) < 1e-15] = 0.0
@@ -29,7 +29,7 @@ for i in range(len(data)):
         data[i, j] = np.sqrt(abs(data[i, j])) / (2 * np.pi) * np.sign(data[i, j])
 nu = data
 
-""" #qe加这段，vasp不用
+""" #qe加这段,vasp不用
 data = np.loadtxt("C.freq.gp")
 x = data[:, 0]
 y_columns = data[:, 1:]

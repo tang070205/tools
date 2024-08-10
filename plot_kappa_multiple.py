@@ -6,8 +6,8 @@ from scipy.integrate import cumtrapz #scipy<=1.13
 #from scipy.integrate import cumulative_trapezoid #scipy>=1.14
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python sdf.py <number-of-runs> <direction>")
+    if len(sys.argv) != 2:
+        print("Usage: python sdf.py <number-of-runs>")
         sys.exit(1)
 if __name__ == "__main__":
     main()
@@ -17,8 +17,9 @@ with open('run.in', 'r') as file:
         line = line.strip()
         if 'time_step' in line:
             time_step = int(line.split()[1])
-        elif 'compute_hnemd' in line:)
+        elif 'compute_hnemd' in line:
             hnemd_sample = int(line.split()[1])
+            dic = 'x' if int(line.split()[2]) != 0 else 'y' if int(line.split()[3]) != 0 else 'z'
 
 run_time = 10000000
 one_lines = run_time / hnemd_sample
@@ -28,10 +29,10 @@ t = np.arange(1, one_lines + 1) * 0.001 * time_step
 xlimit = int(run_time / 1000000 * time_step)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
-    return cumtrapz(y, x, initial=0) / x scipy<=1.13
+    return cumtrapz(y, x, initial=0) / x  #scipy<=1.13
     #return cumulative_trapezoid(y, x, initial=0) / x #scipy>=1.14
 
-if sys.argv[2] == 'x' or sys.argv[2] == 'y':
+if dic == 'x' or dic == 'y':
     plt.figure(figsize=(17, 5))
     def plot_running_avg(data, subplot_index, color, ylabel, y_start, y_end, yticks, title_tag):
         ax = plt.subplot(1, 3, subplot_index)
@@ -51,10 +52,10 @@ if sys.argv[2] == 'x' or sys.argv[2] == 'y':
         plt.ylabel(ylabel)
         plt.title(f'({title_tag})')
 
-    if sys.argv[2] == 'x':
+    if dic == 'x':
         ki_data = [file_datas[i][:, 0] for i in range(int(sys.argv[1]))]
         ko_data = [file_datas[i][:, 1] for i in range(int(sys.argv[1]))]
-    elif sys.argv[2] == 'y':
+    elif dic == 'y':
         ki_data = [file_datas[i][:, 2] for i in range(int(sys.argv[1]))]
         ko_data = [file_datas[i][:, 3] for i in range(int(sys.argv[1]))]
     plot_running_avg(ki_data, 1, 'red', r'$\kappa_{in}$ W/m/K', -2000, 4000, 1000, 'a')
@@ -74,9 +75,9 @@ if sys.argv[2] == 'x' or sys.argv[2] == 'y':
     plt.ylabel(r'$\kappa_{total}$ W/m/K')
     plt.title('(c)')
     plt.legend(['in', 'out', 'total'])
-    plt.savefig(f'hnemd-{sys.argv[2]}.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'hnemd-{dic}.png', dpi=150, bbox_inches='tight')
 
-elif sys.argv[2] == 'z':
+elif dic == 'z':
     plt.figure(figsize=(6, 5))
     kz_data = [file_datas[i][:, 4] for i in range(int(sys.argv[1]))]
     for dataset in kz_data:

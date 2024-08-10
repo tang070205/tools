@@ -19,7 +19,7 @@ Ein = compute[:, -2]
 Eout = compute[:, -1]
 temp_ave = np.mean(T[1+int(len(compute)/2):,:], axis=0)
 Ns = 1000
-t = 0.001*np.arange(1,len(compute)+1) * Ns/1000  # ns
+t = np.arange(1,len(compute)+1) * Ns/1000000  # ns
 
 figure(figsize=(10,5))
 subplot(1,2,1)

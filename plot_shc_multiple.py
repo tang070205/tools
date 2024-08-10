@@ -4,8 +4,8 @@ from ase.io import read
 from pylab import *
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python sdf.py <number-of-runs> <direction>")
+    if len(sys.argv) != 2:
+        print("Usage: python sdf.py <number-of-runs>")
         sys.exit(1)
 if __name__ == "__main__":
     main()
@@ -16,12 +16,12 @@ with open('run.in', 'r') as file:
         if 'compute_shc' in line:
             num_corr_points = int(line.split()[2])
             num_omega = int(line.split()[4])
+            dic = 'x' if int(line.split()[3]) ==0 else 'y' if int(line.split()[3]) ==1 else 'z'
         elif 'nvt' in line:
             T = int(line.split()[2])
         elif 'compute_hnemd' in line:
-            Fe = line.split()[2] if sys.argv[2] == 'x' else line.split()[3] if sys.argv[2] == 'y' else line.split()[4]
-one_lines = 2 * num_corr_points - 1 + num_omega
-shc_unanalyzed = np.loadtxt('shc.out', max_rows = int(sys.argv[1]) * int(one_lines))
+            Fe = line.split()[2] if dic == 'x' else line.split()[3] if dic == 'y' else line.split()[4]
+shc_unanalyzed = np.loadtxt('shc.out')
 shc = np.mean(np.split(shc_unanalyzed, int(sys.argv[1])), axis=0)
 
 l = read('model.xyz').cell.lengths()
@@ -30,7 +30,7 @@ V = Lx * Ly * Lz
 Vvcf = shc[:2 * num_corr_points - 1, :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]
 shc_nu = shc[-num_omega:, 0]/(2*pi)
-shc_kwi = shc[-num_omega:, 1] * 1602.17662 / (float(Fe) * T * V)
+shc_kwi = shc[-num_omega:, 1] * 1602.17662 / (float(Fe) * T * V) #convert = 1602.17662
 shc_kwo = shc[-num_omega:, 2] * 1602.17662 / (float(Fe) * T * V)
 shc_kw = shc_kwi + shc_kwo
 shc_K = shc_Ki + shc_Ko
@@ -46,7 +46,7 @@ for i, el in enumerate(length):
 
 figure(figsize=(12,10))
 subplot(2,2,1)
-L = Lx if sys.argv[2] == 'x' else Ly if sys.argv[2] == 'y' else Lz
+L = Lx if dic == 'x' else Ly if dic == 'y' else Lz
 plot(shc_t, shc_K/L, linewidth=3)
 xlim([-0.5, 0.5])
 gca().set_xticks([-0.5, 0, 0.5])

@@ -1,10 +1,10 @@
 """
     Purpose:
-        对已有不同原型结构，利用hiphive和dpdata两个python包生成应变(generate_strained_structure)、
+        对已有不同原型结构, 利用hiphive和dpdata两个python包生成应变(generate_strained_structure)、
         形变(generate_deformed_structure)、扩胞后的应变+原子坐标微扰(rattled_structure)、
         晶格+原子坐标都微扰(perturbed_system) 四种
     Notice:
-        hiphive导出POSCAR好像有bug，所以先输出了xyz再转换成POSCAR，扩胞后的perturb没写(应该够了)
+        hiphive导出POSCAR好像有bug, 所以先输出了xyz再转换成POSCAR, 扩胞后的perturb没写(应该够了)
         准备好原始构型、INCAR、POTCAR 直接python3 create-strain_deform-rattle-perturb.py即可
 """
 

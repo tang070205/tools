@@ -1,8 +1,8 @@
 from ase.io import write,read
 import numpy as np
 #除分组方向其他两方向长度要一致
-uc1 = read('108.xyz') 
-uc2 = read('98.xyz') 
+uc1 = read('POSCAR1') 
+uc2 = read('POSCAR2') 
 cx1, cy1, cz1 = 10, 2, 2
 cx2, cy2, cz2 = 10, 2, 2
 struc1 = uc1* (cx1, cy1, cz1)
