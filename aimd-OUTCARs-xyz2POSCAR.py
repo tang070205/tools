@@ -20,7 +20,6 @@ for line in open('xmllist'):
     except:
         b=read(xml.replace("vasprun.xml","OUTCAR"),index=":")
         print(xml.replace("vasprun.xml","OUTCAR"))
-    # check convergence for each ionic step
     os.system("grep -B 1 E0 "+xml.replace('vasprun.xml','OSZICAR')+" |grep -E 'DAV|RMM' |awk '{if($2>=60) print 0; else print 1}'>screen_tmp")
     screen=np.loadtxt("screen_tmp")
     try:
@@ -43,15 +42,9 @@ def main(number_structures):
 
     with open("aimd.xyz", "r") as input_file:
         first_line = input_file.readline()
-        try:
-            structure_lines = int(first_line) + 2
-        except ValueError:
-            print("第一行内容不能转换为整数")
+        structure_lines = int(first_line) + 2
         total_lines = sum(1 for _ in input_file) + 1
-        print(structure_lines)
-        print(total_lines)
         structures_count = total_lines // structure_lines
-        print(structures_count)
 
     output_lines = []
     with open("aimd.xyz", "r") as input_file:
