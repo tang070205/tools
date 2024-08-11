@@ -15,12 +15,14 @@ with open('run.in', 'r') as file:
         line = line.strip()
         if 'compute_shc' in line:
             num_corr_points = int(line.split()[2])
+            max_corr_t = int(line.split()[1])*int(line.split()[2])/1000
             num_omega = int(line.split()[4])
             dic = 'x' if int(line.split()[3]) ==0 else 'y' if int(line.split()[3]) ==1 else 'z'
         elif 'nvt' in line:
             T = int(line.split()[2])
         elif 'compute_hnemd' in line:
             Fe = line.split()[2] if dic == 'x' else line.split()[3] if dic == 'y' else line.split()[4]
+print('驱动力方向：', dic)
 shc_unanalyzed = np.loadtxt('shc.out')
 shc = np.mean(np.split(shc_unanalyzed, int(sys.argv[1])), axis=0)
 
@@ -35,7 +37,7 @@ shc_kwo = shc[-num_omega:, 2] * 1602.17662 / (float(Fe) * T * V)
 shc_kw = shc_kwi + shc_kwo
 shc_K = shc_Ki + shc_Ko
 Gc = np.load('Gc.npy')
-mask = shc_nu <= 50 #可能你设置的频率要大很多，可以通过改变这个值来使图三取正部分以及图四光滑
+mask = shc_nu <= 50 #可能你在run.in设置的频率要大一些，可以通过改变这个值来使图三取正部分以及图四光滑
 mask_nu = shc_nu[mask]
 mask_kw = shc_kw[mask]
 lambda_i = (shc_kw/Gc)[mask]
@@ -48,8 +50,8 @@ figure(figsize=(12,10))
 subplot(2,2,1)
 L = Lx if dic == 'x' else Ly if dic == 'y' else Lz
 plot(shc_t, shc_K/L, linewidth=3)
-xlim([-0.5, 0.5])
-gca().set_xticks([-0.5, 0, 0.5])
+xlim([-max_corr_t, max_corr_t])
+gca().set_xticks(linspace(-max_corr_t, max_corr_t, 4))
 ylim([-1, 5])
 gca().set_yticks(range(-1,6,1))
 ylabel('K (eV/ps)')
