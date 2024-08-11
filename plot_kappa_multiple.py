@@ -20,7 +20,7 @@ with open('run.in', 'r') as file:
         elif 'compute_hnemd' in line:
             hnemd_sample = int(line.split()[1])
             dic = 'x' if int(line.split()[2]) != 0 else 'y' if int(line.split()[3]) != 0 else 'z'
-
+print('驱动力方向：', dic)
 run_time = 10000000
 one_lines = run_time / hnemd_sample
 kappa = np.loadtxt('kappa.out', max_rows = int(sys.argv[1]) * int(one_lines))
