@@ -14,21 +14,21 @@ def calculate_r_squared(y_true, y_pred):
     return r2_score(y_true, y_pred)
 color_train= 'deepskyblue'
 color_test= 'orange'
-legend_train = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train'), frameon=False]
-legend_train_test = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train'),
-                     plt.Line2D([0], [0], color='orange', marker='.', markersize=6, lw=0, label='test'), frameon=False]
+legend_train = plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train')
+legend_train_test = plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train'),
+plt.Line2D([0], [0], color='orange', marker='.', markersize=6, lw=0, label='test')
 
 def loss_train_code():
     loglog(loss[:, 1:7])
     xlabel('Generation/100')
     ylabel('Loss')
-    legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', frameon=False])
+    legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train'], ncol=2, frameon=False)
     tight_layout()
     pass
 
 def loss_test_code():
     loglog(loss[:, 7:10])
-    legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', 'Energy-test', 'Force-test', 'Virial-test', frameon=False])
+    legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', 'Energy-test', 'Force-test', 'Virial-test'], ncol=3, frameon=False)
     pass
 
 def energy_train_code():
@@ -36,7 +36,7 @@ def energy_train_code():
     plot(linspace(-3.5,-2.5), linspace(-3.5,-2.5), '-')
     xlabel('DFT energy (eV/atom)')
     ylabel('NEP energy (eV/atom)')
-    legend(handles=legend_train)
+    legend(handles=legend_train, frameon=False)
     rmse_energy = np.sqrt(np.mean((energy_train[:,0]-energy_train[:,1])**2))
     plt.title(f'RMSE = {1000* rmse_energy:.3f} meV/atom')
     R_energy = calculate_r_squared(energy_train[:, 0], energy_train[:, 1])
@@ -46,7 +46,7 @@ def energy_train_code():
 
 def energy_test_code():
     plot(energy_test[:, 1], energy_test[:, 0], '.', color=color_test)
-    legend(handles=legend_train_test)
+    legend(handles=legend_train_test, frameon=False)
     pass
 
 def force_train_code():
@@ -55,7 +55,7 @@ def force_train_code():
     plot(linspace(-10,10), linspace(-10,10), '-')
     xlabel('DFT force (eV/A)')
     ylabel('NEP force (eV/A)')
-    legend(handles=legend_train)
+    legend(handles=legend_train, frameon=False)
     #legend(['train x direction', 'train y direction', 'train z direction'])
     force_diff = np.reshape(force_train[:,3:6]-force_train[:,0:3], (force_train.shape[0]*3, 1))
     rmse_force = np.sqrt(np.mean(force_diff**2))
@@ -67,7 +67,7 @@ def force_train_code():
 
 def force_test_code():
     plot(force_test[:, 3:6], force_test[:, 0:3], '.', color=color_test)
-    legend(handles=legend_train_test)
+    legend(handles=legend_train_test, frameon=False)
     #legend(['test x direction', 'test y direction', 'test z direction', 'train x direction', 'train y direction', 'train z direction'])
     pass
 
@@ -76,7 +76,7 @@ def virial_train_code():
     plot(linspace(-3,5), linspace(-3,5), '-')
     xlabel('DFT virial (eV/atom)')
     ylabel('NEP virial (eV/atom)')
-    legend(handles=legend_train)
+    legend(handles=legend_train, frameon=False)
     rmse_virial = np.sqrt(np.mean((virial_train[:, 0:6] - virial_train[:, 6:12])**2))
     plt.title(f'RMSE = {1000* rmse_virial:.3f} meV/atom')
     R_virial = calculate_r_squared(virial_train[:, 0:6], virial_train[:, 6:12])
@@ -86,7 +86,7 @@ def virial_train_code():
 
 def virial_test_code():
     plot(virial_test[:, 6:12], virial_test[:, 0:6], '.', color=color_test)
-    legend(handles=legend_train_test)
+    legend(handles=legend_train_test, frameon=False)
     pass
 
 def stress_train_code():
@@ -94,7 +94,7 @@ def stress_train_code():
     plot(linspace(-10,20), linspace(-10,20), '-')
     xlabel('DFT stress (GPa)')
     ylabel('NEP stress (GPa)')
-    legend(handles=legend_train)
+    legend(handles=legend_train, frameon=False)
     rmse_stress = np.sqrt(np.mean((stress_train[:, 0:6] - stress_train[:, 6:12])**2))
     plt.title(f'RMSE = {1000* rmse_stress:.3f} MPa')
     R_stress = calculate_r_squared(stress_train[:, 0:6], stress_train[:, 6:12])
@@ -104,7 +104,7 @@ def stress_train_code():
 
 def stress_test_code():
     plot(stress_test[:, 6:12], stress_test[:, 0:6], '.', color=color_test)
-    legend(handles=legend_train_test)
+    legend(handles=legend_train_test, frameon=False)
     pass
 
 if os.path.exists('loss.out'):
