@@ -19,7 +19,7 @@ with open('run.in', 'r') as file:
             time_step = int(line.split()[1])
         elif 'compute_hnemd' in line:
             hnemd_sample = int(line.split()[1])
-            dic = 'x' if int(line.split()[2]) != 0 else 'y' if int(line.split()[3]) != 0 else 'z'
+            dic = 'x' if float(line.split()[2]) > 0 else 'y' if float(line.split()[3]) > 0 else 'z'
 print('驱动力方向：', dic)
 run_time = 10000000
 one_lines = run_time / hnemd_sample
@@ -66,7 +66,7 @@ if dic == 'x' or dic == 'y':
     plt.plot(t, running_ave(np.mean(np.array(ko_data), axis=0),t), 'blue', label='out', linewidth=2)
     running_avg_k = running_ave(np.mean(np.array(ki_data), axis=0) + np.mean(np.array(ko_data), axis=0), t)
     plt.plot(t, running_avg_k, 'black', label='total', linewidth=2)
-    plt.annotate(f'{running_avg_k[-1]:.2f}', xy=(t[-1], running_avg_k[-1]), xytext=(-20, -10), textcoords='offset points', ha='center', va='bottom')
+    plt.annotate(f'{running_avg_k[-1]:.2f}', xy=(t[-1], running_avg_k[-1]), xytext=(-20, 5), textcoords='offset points', ha='center', va='bottom')
     plt.xlim([0,xlimit])
     plt.ylim([-50, 100])
     plt.gca().set_xticks(linspace(0, xlimit, 6))

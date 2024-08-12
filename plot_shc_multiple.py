@@ -15,13 +15,13 @@ with open('run.in', 'r') as file:
         line = line.strip()
         if 'compute_shc' in line:
             num_corr_points = int(line.split()[2])
-            max_corr_t = int(line.split()[1]*line.split()[2]/1000)
+            max_corr_t = int(line.split()[1])*int(line.split()[2])/1000
             num_omega = int(line.split()[4])
             dic = 'x' if int(line.split()[3]) ==0 else 'y' if int(line.split()[3]) ==1 else 'z'
         elif 'nvt' in line:
             T = int(line.split()[2])
         elif 'compute_hnemd' in line:
-            Fe = line.split()[2] if dic == 'x' else line.split()[3] if dic == 'y' else line.split()[4]
+            Fex, Fey,Fez = line.split()[2], line.split()[3], line.split()[4]
 print('驱动力方向：', dic)
 shc_unanalyzed = np.loadtxt('shc.out')
 shc = np.mean(np.split(shc_unanalyzed, int(sys.argv[1])), axis=0)
@@ -32,6 +32,7 @@ V = Lx * Ly * Lz
 Vvcf = shc[:2 * num_corr_points - 1, :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]
 shc_nu = shc[-num_omega:, 0]/(2*pi)
+Fe = Fex if dic == 'x' else Fey if dic == 'y' else Fez
 shc_kwi = shc[-num_omega:, 1] * 1602.17662 / (float(Fe) * T * V) #convert = 1602.17662
 shc_kwo = shc[-num_omega:, 2] * 1602.17662 / (float(Fe) * T * V)
 shc_kw = shc_kwi + shc_kwo
