@@ -6,15 +6,12 @@ from calorine.nep import get_descriptors
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import cdist
 
-strucs = read("structures.xyz", ":")
+strucs = read("dump.xyz", ":")
 nep_name = "nep.txt"
-min_distance = float(sys.argv[2])
-range_x = (float(sys.argv[2]), float(sys.argv[3]))
-range_y = (float(sys.argv[4]), float(sys.argv[5]))
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python sclect_pick_structure.py all")
+        print("Usage: python sclect_pick_structure.py all #这个看所有点的位置情况")
         print("Usage: python sclect_pick_structure.py select min_distance")
         print("Usage: python sclect_pick_structure.py pick x1 x2 y1 y2")
         sys.exit(1)
@@ -56,10 +53,10 @@ if sys.argv[1] == "all":
     plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0")
     plt.xlabel('PC1')
     plt.ylabel('PC2')
-    plt.legend()
     plt.savefig("all-points.png")
 
 elif sys.argv[1] == "select":
+    min_distance = float(sys.argv[2])
     selected_strucs = FarthestPointSample(des, min_distance=min_distance)  
     write("selected.xyz", [strucs[i] for i in selected_strucs])
     abandoned_strucs = [i for i in range(len(strucs)) if i not in selected_strucs]
@@ -73,12 +70,14 @@ elif sys.argv[1] == "select":
     plt.savefig("select.png")
 
 elif sys.argv[1] == "pick":
+    range_x = (float(sys.argv[2]), float(sys.argv[3]))
+    range_y = (float(sys.argv[4]), float(sys.argv[5]))
     pick_proj = pick_points(proj, range_x, range_y)
     picked_strucs = [strucs[i] for i in pick_proj]
     write("picked.xyz", picked_strucs)
     retainted_proj = [i for i in range(len(strucs)) if i not in pick_proj]
     write('retainted.xyz', [strucs[i] for i in retainted_proj])
-    plt.scatter(proj[pick_proj, 0], proj[pick_proj, 1], color='C2', label="Picked")
-    plt.scatter(proj[retainted_proj, 0], proj[retainted_proj, 1], color='C1', label="Retainted")
+    plt.scatter(proj[pick_proj, 0], proj[pick_proj, 1], alpha=0.5, color='C1', label="Picked")
+    plt.scatter(proj[retainted_proj, 0], proj[retainted_proj, 1], alpha=0.5, color='C0', label="Retainted")
     plt.legend()
     plt.savefig("retain-pick.png")
