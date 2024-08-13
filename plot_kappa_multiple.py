@@ -16,7 +16,7 @@ with open('run.in', 'r') as file:
     for line in file:
         line = line.strip()
         if 'time_step' in line:
-            time_step = int(line.split()[1])
+            time_step = float(line.split()[1])
         elif 'compute_hnemd' in line:
             hnemd_sample = int(line.split()[1])
             dic = 'x' if float(line.split()[2]) > 0 else 'y' if float(line.split()[3]) > 0 else 'z'
