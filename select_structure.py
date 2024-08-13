@@ -1,9 +1,25 @@
+import sys
 import numpy as np
 from ase.io import read, write
 import matplotlib.pyplot as plt
 from calorine.nep import get_descriptors
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import cdist
+
+strucs = read("structures.xyz", ":")
+nep_name = "nep.txt"
+min_distance = float(sys.argv[2])
+range_x = (float(sys.argv[2]), float(sys.argv[3]))
+range_y = (float(sys.argv[4]), float(sys.argv[5]))
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python sclect_pick_structure.py all")
+        print("Usage: python sclect_pick_structure.py select min_distance")
+        print("Usage: python sclect_pick_structure.py pick x1 x2 y1 y2")
+        sys.exit(1)
+if __name__ == "__main__":
+    main()
 
 def FarthestPointSample(new_data, now_data=[], min_distance=0.1, min_select=1, max_select=None, metric='euclidean'):
     max_select = max_select or len(new_data)
@@ -22,19 +38,47 @@ def FarthestPointSample(new_data, now_data=[], min_distance=0.1, min_select=1, m
         distances = np.minimum(distances, cdist([new_data[i]], new_data, metric=metric)[0])
     return to_add
 
-strucs = read("dump.xyz", ":")
-des = np.array([np.mean(get_descriptors(i, model_filename='nep.txt'), axis=0) for i in strucs])
-selected_i = FarthestPointSample(des, min_distance=0.05)  
-write("selected.traj", [strucs[i] for i in selected_i])
-abandoned_i = [i for i in range(len(strucs)) if i not in selected_i]
-write('test.xyz', [strucs[i] for i in abandoned_i])
+def pick_points(proj, range_x, range_y):
+    pick_strucs = []
+    for i, point in enumerate(proj):
+        if range_x[0] <= point[0] <= range_x[1] and range_y[0] <= point[1] <= range_y[1]:
+            pick_strucs.append(i)
+    return pick_strucs
+
+
+des = np.array([np.mean(get_descriptors(i, model_filename=nep_name), axis=0) for i in strucs])
 reducer = PCA(n_components=2)
 reducer.fit(des)
 proj = reducer.transform(des)
-plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0", label="All")
-selected_proj = reducer.transform(np.array([des[i] for i in selected_i]))
-plt.scatter(selected_proj[:, 0], selected_proj[:, 1], s=8, color='C1', label="Selected")
-plt.xlabel('PC1')
-plt.ylabel('PC2')
-plt.legend()
-plt.savefig("select.png")
+
+
+if sys.argv[1] == "all":
+    plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0")
+    plt.xlabel('PC1')
+    plt.ylabel('PC2')
+    plt.legend()
+    plt.savefig("all-points.png")
+
+elif sys.argv[1] == "select":
+    selected_strucs = FarthestPointSample(des, min_distance=min_distance)  
+    write("selected.xyz", [strucs[i] for i in selected_strucs])
+    abandoned_strucs = [i for i in range(len(strucs)) if i not in selected_strucs]
+    write('abandoned.xyz', [strucs[i] for i in abandoned_strucs])
+    plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0", label="All")
+    selected_proj = reducer.transform(np.array([des[i] for i in selected_strucs]))
+    plt.scatter(selected_proj[:, 0], selected_proj[:, 1], s=8, color='C1', label="Selected")
+    plt.xlabel('PC1')
+    plt.ylabel('PC2')
+    plt.legend()
+    plt.savefig("select.png")
+
+elif sys.argv[1] == "pick":
+    pick_proj = pick_points(proj, range_x, range_y)
+    picked_strucs = [strucs[i] for i in pick_proj]
+    write("picked.xyz", picked_strucs)
+    retainted_proj = [i for i in range(len(strucs)) if i not in pick_proj]
+    write('retainted.xyz', [strucs[i] for i in retainted_proj])
+    plt.scatter(proj[pick_proj, 0], proj[pick_proj, 1], color='C2', label="Picked")
+    plt.scatter(proj[retainted_proj, 0], proj[retainted_proj, 1], color='C1', label="Retainted")
+    plt.legend()
+    plt.savefig("retain-pick.png")
