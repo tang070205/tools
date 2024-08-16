@@ -6,7 +6,7 @@ from calorine.nep import get_descriptors
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import cdist
 
-strucs = read("dump.xyz", ":")
+strucs = read("structures.xyz", ":")
 nep_name = "nep.txt"
 
 def main():
