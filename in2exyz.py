@@ -1,4 +1,4 @@
-import os, sys, glob, math, random
+import os, re, sys, glob, math, random
 import numpy as np
 
 def main():
@@ -14,6 +14,12 @@ file_prefix = os.path.splitext(os.path.basename(in_file))[0]
 out_file = file_prefix + '.xyz' 
 extract_file = file_prefix + '_extract.xyz' 
 surplus_file = file_prefix + '_surplus.xyz' 
+
+with open(in_file, 'r') as file:
+    content = file.read()
+content = re.sub(r'(\d+\.\d+)', lambda m: f"{float(m.group(1)):.8f}", content)
+with open(in_file, 'w') as file:
+        file.write(content)
 
 with open(in_file, 'r') as infile, open('perstrucatoms.out', 'w') as psa, open('envipos.out', 'w') as evp, open('lattice.out', 'w') as lat:
     num_strucs = int(infile.readline().strip())
@@ -44,13 +50,11 @@ with open('envipos.out', 'r') as infile, open('envi.out', 'w') as file_ev, open(
 with open('envi.out', 'r') as infile, open('energy.out', 'w') as file_e, open('virial.out', 'w') as file_v:
     for line in infile.readlines():
         columns = line.split()
-        columns[4], columns[6] = columns[6], columns[4]
+        while len(columns) < 7:
+            columns.append('0')
         file_e.write(f"{columns[0]}\n")
-        if len(columns) >= 2:
-            file_v.write(f"{' '.join(columns[1:7])}\n")
-        else:
-            zeros = ['0'] * (7 - len(columns))
-            file_v.write(f"{' '.join(columns[1:] + zeros)}\n")
+        columns[4], columns[6] = columns[6], columns[4]
+        file_v.write(f"{' '.join(columns[1:7])}\n")
 
 def write_strucs(struc_lines, xyz_file, perstrucatoms, energy, virial, lattice, position):
     for i in struc_lines:
