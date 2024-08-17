@@ -57,6 +57,11 @@ with open('envi.out', 'r') as infile, open('energy.out', 'w') as file_e, open('v
         file_v.write(f"{' '.join(columns[1:7])}\n")
 
 def write_strucs(struc_lines, xyz_file, perstrucatoms, energy, virial, lattice, position):
+    perstrucatoms.seek(0)
+    energy.seek(0)
+    virial.seek(0)
+    lattice.seek(0)
+    position.seek(0)
     for i in struc_lines:
         energy_line = energy.readline().strip()
         virial_line = virial.readline().strip()
