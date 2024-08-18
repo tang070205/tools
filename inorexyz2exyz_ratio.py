@@ -59,7 +59,7 @@ if sys.argv[1].endswith('.in'):
             columns += columns[-3:]
             file_e.write(f"{columns[0]}\n")
             columns[2:] = columns[4], columns[6], columns[7], columns[2], columns[5], columns[9], columns[8], columns[3]
-            file_v.write(f"{' '.join(columns[1:7])}\n")
+            file_v.write(f"{' '.join(columns[1:10])}\n")
 
     def write_strucs(struc_lines, xyz_file, perstrucatoms, energy, virial, lattice, position):
         perstrucatoms.seek(0)
