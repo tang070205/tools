@@ -57,7 +57,7 @@ if sys.argv[1].endswith('.in'):
             while len(columns) < 7:
                 columns.append('0')
             file_e.write(f"{columns[0]}\n")
-            columns[4], columns[6] = columns[6], columns[4]
+            columns[4],  columns[5], columns[6] = columns[6], columns[4], columns[5]
             file_v.write(f"{' '.join(columns[1:7])}\n")
 
     def write_strucs(struc_lines, xyz_file, perstrucatoms, energy, virial, lattice, position):
