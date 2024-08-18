@@ -75,9 +75,9 @@ elif sys.argv[1] == "pick":
     pick_proj = pick_points(proj, range_x, range_y)
     picked_strucs = [strucs[i] for i in pick_proj]
     write("picked.xyz", picked_strucs, format='extxyz', write_results=False)
-    retainted_proj = [i for i in range(len(strucs)) if i not in pick_proj]
-    write('retainted.xyz', [strucs[i] for i in retainted_proj], format='extxyz', write_results=False)
+    retained_proj = [i for i in range(len(strucs)) if i not in pick_proj]
+    write('retained.xyz', [strucs[i] for i in retained_proj], format='extxyz', write_results=False)
     plt.scatter(proj[pick_proj, 0], proj[pick_proj, 1], alpha=0.5, color='C1', label="Picked")
-    plt.scatter(proj[retainted_proj, 0], proj[retainted_proj, 1], alpha=0.5, color='C0', label="Retainted")
+    plt.scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retainted")
     plt.legend()
     plt.savefig("retain-pick.png")
