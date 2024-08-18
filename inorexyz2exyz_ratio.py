@@ -56,8 +56,9 @@ if sys.argv[1].endswith('.in'):
             columns = line.split()
             while len(columns) < 7:
                 columns.append('0')
+            columns += columns[-3:]
             file_e.write(f"{columns[0]}\n")
-            columns[4],  columns[5], columns[6] = columns[6], columns[4], columns[5]
+            columns[2:] = columns[4], columns[6], columns[7], columns[2], columns[5], columns[9], columns[8], columns[3]
             file_v.write(f"{' '.join(columns[1:7])}\n")
 
     def write_strucs(struc_lines, xyz_file, perstrucatoms, energy, virial, lattice, position):
@@ -71,7 +72,7 @@ if sys.argv[1].endswith('.in'):
             virial_line = virial.readline().strip()
             lattice_line = lattice.readline().strip()
             xyz_file.write(perstrucatoms.readline())
-            xyz_file.write(f"Energy={energy_line} Virial=\"{virial_line}\" Lattice=\"{lattice_line}\" Config_type=infile-{i+1} Weight=1 Properties=species:S:1:pos:R:3:force:R:3\n")
+            xyz_file.write(f"Energy={energy_line} Virial=\"{virial_line}\" Lattice=\"{lattice_line}\" Config_type=infile-{i+1} Weight=1 Properties=species:S:1:pos:R:3:force:R:3 pbc=\"T T T\" \n")
             for _ in range(pos_lines[i], pos_lines[i+1]):
                 xyz_file.write(position.readline())
         
