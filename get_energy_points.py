@@ -13,7 +13,8 @@ energt_train = np.loadtxt(sys.argv[1])
 value = energt_train[:,1] - energt_train[:,0]
 dif_value_positive = float(sys.argv[3])
 dif_value_negative = float(sys.argv[3])
-struc_id = np.where((value > dif_value_positive) | (value < -dif_value_negative))
+dif_id = np.where((value > dif_value_positive) | (value < -dif_value_negative))
+struc_id = dif_id[0].tolist() 
 
 strucs = read(sys.argv[2], ":")
 write('deviate.xyz', [strucs[i] for i in struc_id], format='extxyz', write_results=False)
