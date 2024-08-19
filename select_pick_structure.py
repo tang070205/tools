@@ -12,8 +12,8 @@ nep_name = "nep.txt"
 def main():
     if len(sys.argv) < 2:
         print("Usage: python sclect_pick_structure.py all #这个看所有点的位置情况")
-        print("Usage: python sclect_pick_structure.py select min_distance")
-        print("Usage: python sclect_pick_structure.py pick x1 x2 y1 y2")
+        print("Usage: python sclect_pick_structure.py select min_distance_1 min_distance_2 ......")
+        print("Usage: python sclect_pick_structure.py pick x1_start x1_end y1_start y1_end x2_start x2_end y2_start y2_end ......")
         sys.exit(1)
 if __name__ == "__main__":
     main()
@@ -56,28 +56,34 @@ if sys.argv[1] == "all":
     plt.savefig("all-points.png")
 
 elif sys.argv[1] == "select":
-    min_distance = float(sys.argv[2])
-    selected_strucs = FarthestPointSample(des, min_distance=min_distance)  
-    write("selected.xyz", [strucs[i] for i in selected_strucs], format='extxyz', write_results=False)
-    abandoned_strucs = [i for i in range(len(strucs)) if i not in selected_strucs]
-    write('abandoned.xyz', [strucs[i] for i in abandoned_strucs], format='extxyz', write_results=False)
-    plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0", label="All")
-    selected_proj = reducer.transform(np.array([des[i] for i in selected_strucs]))
-    plt.scatter(selected_proj[:, 0], selected_proj[:, 1], s=8, color='C1', label="Selected")
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    plt.legend()
-    plt.savefig("select.png")
+    min_distances = [float(arg) for arg in sys.argv[2:]]
+    for min_distance in min_distances:
+        selected_strucs = FarthestPointSample(des, min_distance=min_distance)
+        write(f"selected_{min_distance}.xyz", [strucs[i] for i in selected_strucs], format='extxyz', write_results=False)
+        abandoned_strucs = [i for i in range(len(strucs)) if i not in selected_strucs]
+        write(f"abandoned_{min_distance}.xyz", [strucs[i] for i in abandoned_strucs], format='extxyz', write_results=False)
+        plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0", label="All")
+        selected_proj = reducer.transform(np.array([des[i] for i in selected_strucs]))
+        plt.scatter(selected_proj[:, 0], selected_proj[:, 1], s=8, color='C1', label="Selected at {}".format(min_distance))
+        plt.xlabel('PC1')
+        plt.ylabel('PC2')
+        plt.legend()
+        plt.savefig(f"select_{min_distance}.png")
 
-elif sys.argv[1] == "pick":
-    range_x = (float(sys.argv[2]), float(sys.argv[3]))
-    range_y = (float(sys.argv[4]), float(sys.argv[5]))
-    pick_proj = pick_points(proj, range_x, range_y)
-    picked_strucs = [strucs[i] for i in pick_proj]
-    write("picked.xyz", picked_strucs, format='extxyz', write_results=False)
-    retained_proj = [i for i in range(len(strucs)) if i not in pick_proj]
+if sys.argv[1] == "pick":
+    picked_proj = set()
+    for i in range(2, len(sys.argv), 4):
+        x_start, x_end, y_start, y_end = map(float, sys.argv[i:i+4])
+        range_x = (x_start, x_end)
+        range_y = (y_start, y_end)
+        current_proj = pick_points(proj, range_x, range_y)
+        picked_proj.update(current_proj)
+    picked_proj = list(picked_proj)
+    write("picked.xyz", [strucs[i] for i in picked_proj], format='extxyz', write_results=False)
+    retained_proj = [i for i in range(len(strucs)) if i not in picked_proj]
     write('retained.xyz', [strucs[i] for i in retained_proj], format='extxyz', write_results=False)
-    plt.scatter(proj[pick_proj, 0], proj[pick_proj, 1], alpha=0.5, color='C1', label="Picked")
-    plt.scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retainted")
+    plt.scatter(proj[picked_proj, 0], proj[picked_proj, 1], alpha=0.5, color='C1', label="Picked")
+    plt.scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retained")
     plt.legend()
     plt.savefig("retain-pick.png")
+
