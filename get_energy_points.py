@@ -12,8 +12,8 @@ if __name__ == "__main__":
 energt_train = np.loadtxt(sys.argv[1])
 value = energt_train[:,1] - energt_train[:,0]
 dif_value_positive = float(sys.argv[3])
-dif_value_negative = float(sys.argv[3])
-dif_id = np.where((value > dif_value_positive) | (value < -dif_value_negative))
+dif_value_negative = float(sys.argv[4])
+dif_id = np.where((value > dif_value_positive) | (value < dif_value_negative))
 struc_id = dif_id[0].tolist() 
 
 strucs = read(sys.argv[2], ":")
