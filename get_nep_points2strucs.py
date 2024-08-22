@@ -14,7 +14,7 @@ strucs = read(sys.argv[3], ":")
 atom_counts = [0]
 for atoms in strucs:
     atom_counts.append(atom_counts[-1] + len(atoms))
-print(atom_counts)
+
 fout = np.loadtxt(sys.argv[2])
 if 'energy' in sys.argv[2]:
     dir_value = fout[:,1]
