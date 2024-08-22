@@ -45,8 +45,7 @@ if sys.argv[1] == 'direct':
         large_value = float(sys.argv[i+1])
         dir_id = np.where((dir_value > small_value) & (dir_value < large_value))[0]
         direct_id.extend(dir_id)
-    print(direct_id)
-    if len(dir_value[0]) == 3:
+    if 'force' in sys.argv[2]:
         struc_id = sorted(set(generate_struc_ids(direct_id, atom_counts)))
     else:
         struc_id = sorted(set(direct_id))
@@ -55,13 +54,11 @@ elif sys.argv[1] == 'differ':
     small_value = float(sys.argv[4])
     large_value = float(sys.argv[5])
     differ_id = np.where((dif_value > large_value) | (dif_value < small_value))[0].tolist() 
-    print(differ_id)
-    if len(dif_value[0]) == 3:
+    if 'force' in sys.argv[2]:
         struc_id = sorted(set(generate_struc_ids(differ_id, atom_counts)))
     else:
         struc_id = sorted(set(differ_id))
 
-print(struc_id)
 write('deviate.xyz', [strucs[i] for i in struc_id], format='extxyz', write_results=False)
 retain_id = [i for i in range(len(strucs)) if i not in struc_id]
 write('reserve.xyz', [strucs[i] for i in retain_id], format='extxyz', write_results=False)
