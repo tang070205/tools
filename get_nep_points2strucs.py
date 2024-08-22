@@ -4,7 +4,7 @@ from ase.io import read, write
 
 def main():
     if len(sys.argv) < 6:
-        print("Usage: 目前有一个缺点,需要将所有结构先预测一下,用那个out文件才能对的上xyz的结构顺序")
+        print("Usage: 目前有一个缺点,训练时如果不是fullbatch,需要将所有结构先预测一下,用那个out文件才能对的上xyz的结构顺序")
         print("Usage: python get_energy_points.py direct <*.out> <*.xyz> x1_start x1_end x2_start x2_end...")
         print("Usage: python get_energy_points.py differ <*.out> <*.xyz> <dif_value-> <dif_value+>")
         sys.exit(1)
