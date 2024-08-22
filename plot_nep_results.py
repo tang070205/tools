@@ -14,9 +14,9 @@ def calculate_r_squared(y_true, y_pred):
     return r2_score(y_true, y_pred)
 color_train= 'deepskyblue'
 color_test= 'orange'
-legend_train = plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train')
-legend_train_test = plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train'),
-plt.Line2D([0], [0], color='orange', marker='.', markersize=6, lw=0, label='test')
+legend_train = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train')]
+legend_train_test = [plt.Line2D([0], [0], color=color_train, marker='.', markersize=6, lw=0, label='train'),
+plt.Line2D([0], [0], color='orange', marker='.', markersize=6, lw=0, label='test')]
 
 def loss_train_code():
     loglog(loss[:, 1:7])
