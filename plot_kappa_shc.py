@@ -152,4 +152,4 @@ ylabel(r'$\kappa$ (W/m/K)')
 xlabel(r'L ($\mu$m)')
 title('(d)')
 
-savefig('shc.png')
+savefig('shc.png', dpi=150, bbox_inches='tight')

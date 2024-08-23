@@ -53,7 +53,7 @@ if sys.argv[1] == "all":
     plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0")
     plt.xlabel('PC1')
     plt.ylabel('PC2')
-    plt.savefig("all-points.png")
+    plt.savefig("all-points.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "select":
     min_distances = [float(arg) for arg in sys.argv[2:]]
@@ -68,7 +68,7 @@ elif sys.argv[1] == "select":
         plt.xlabel('PC1')
         plt.ylabel('PC2')
         plt.legend()
-        plt.savefig(f"select_{min_distance}.png")
+        plt.savefig(f"select_{min_distance}.png", dpi=150, bbox_inches='tight')
 
 if sys.argv[1] == "pick":
     picked_proj = set()
@@ -85,5 +85,5 @@ if sys.argv[1] == "pick":
     plt.scatter(proj[picked_proj, 0], proj[picked_proj, 1], alpha=0.5, color='C1', label="Picked")
     plt.scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retained")
     plt.legend()
-    plt.savefig("retain-pick.png")
+    plt.savefig("retain-pick.png", dpi=150, bbox_inches='tight')
 

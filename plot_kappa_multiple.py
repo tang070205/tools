@@ -33,7 +33,7 @@ def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     #return cumulative_trapezoid(y, x, initial=0) / x #scipy>=1.14
 
 if dic == 'x' or dic == 'y':
-    plt.figure(figsize=(17, 5))
+    plt.figure(figsize=(13, 4))
     def plot_running_avg(data, subplot_index, color, ylabel, y_start, y_end, title_tag):
         ax = plt.subplot(1, 3, subplot_index)
         avg_data = np.zeros_like(data[0])
@@ -78,7 +78,7 @@ if dic == 'x' or dic == 'y':
     plt.savefig(f'hnemd-{dic}.png', dpi=150, bbox_inches='tight')
 
 elif dic == 'z':
-    plt.figure(figsize=(6, 5))
+    plt.figure(figsize=(5, 4))
     kz_data = [file_datas[i][:, 4] for i in range(int(sys.argv[1]))]
     for dataset in kz_data:
         plot_data = running_ave(dataset, t)

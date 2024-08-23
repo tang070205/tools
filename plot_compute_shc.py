@@ -63,7 +63,7 @@ xlabel('t (ns)')
 ylabel('Heat (keV)')
 title('(b)')
 
-savefig('compute.png')
+savefig('compute.png', dpi=150, bbox_inches='tight')
 
 deltaT = temp_ave[0] - temp_ave[-1]  # [K]
 Q1 = (Ein[int(len(compute)/2)] - Ein[-1])/(len(compute)/2)/Ns*1000
@@ -105,5 +105,5 @@ ylabel(r'$G$($\omega$) (GW/m$^2$/K/THz)')
 xlabel(r'$\omega$/2$\pi$ (THz)')
 title('(b)')
 
-savefig('shc.png')
+savefig('shc.png', dpi=150, bbox_inches='tight')
 np.save('Gc.npy', Gc)

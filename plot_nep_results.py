@@ -22,18 +22,18 @@ def loss_train_code():
     loglog(loss[:, 1:7])
     xlabel('Generation/100')
     ylabel('Loss')
-    legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train'], ncol=2, frameon=False)
+    legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy', 'Force', 'Virial'], ncol=2, frameon=False, fontsize=7)
     tight_layout()
     pass
 
 def loss_test_code():
     loglog(loss[:, 7:10])
-    legend(['Total', 'L1-regularization', 'L2-regularization', 'Energy-train', 'Force-train', 'Virial-train', 'Energy-test', 'Force-test', 'Virial-test'], ncol=3, frameon=False)
+    legend(['Total', 'L1-regularization', 'L2-regularization', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test'], ncol=3, frameon=False, fontsize=7)
     pass
 
 def energy_train_code():
     plot(energy_train[:, 1], energy_train[:, 0], '.', color=color_train)
-    plot(linspace(-3.5,-2.5), linspace(-3.5,-2.5), '-')
+    plot(linspace(-7,-6), linspace(-7,-6), '-')
     xlabel('DFT energy (eV/atom)')
     ylabel('NEP energy (eV/atom)')
     legend(handles=legend_train, frameon=False)
@@ -52,7 +52,7 @@ def energy_test_code():
 def force_train_code():
     plot(force_train[:, 3:6], force_train[:, 0:3], '.', color=color_train)
     #plot(force_train[:, 3:6], force_train[:, 0:3], '.')
-    plot(linspace(-10,10), linspace(-10,10), '-')
+    plot(linspace(-25,25), linspace(-25,25), '-')
     xlabel('DFT force (eV/A)')
     ylabel('NEP force (eV/A)')
     legend(handles=legend_train, frameon=False)
@@ -91,7 +91,7 @@ def virial_test_code():
 
 def stress_train_code():
     plot(stress_train[:, 6:12], stress_train[:, 0:6], '.', color=color_train)
-    plot(linspace(-10,20), linspace(-10,20), '-')
+    plot(linspace(-15,35), linspace(-15,35), '-')
     xlabel('DFT stress (GPa)')
     ylabel('NEP stress (GPa)')
     legend(handles=legend_train, frameon=False)
@@ -112,7 +112,7 @@ if os.path.exists('loss.out'):
     
     if not os.path.exists('test.xyz'):
         if not os.path.exists('stress_train.out'):
-            plt.figure(figsize=(12,10))
+            plt.figure(figsize=(10,8))
             plt.subplot(2,2,1)
             loss_train_code()
             plt.subplot(2,2,2)
@@ -122,7 +122,7 @@ if os.path.exists('loss.out'):
             plt.subplot(2,2,4)
             virial_train_code()
         else:
-            plt.figure(figsize=(20,10))
+            plt.figure(figsize=(10,8))
             plt.subplot(2,2,1)
             loss_train_code()
             plt.subplot(2,2,2)
@@ -133,7 +133,7 @@ if os.path.exists('loss.out'):
             stress_train_code()
     else:
         if not os.path.exists('stress_train.out'):
-            plt.figure(figsize=(12,10))
+            plt.figure(figsize=(10,8))
             plt.subplot(2,2,1)
             loss_train_code()
             loss_test_code()
@@ -147,7 +147,7 @@ if os.path.exists('loss.out'):
             virial_train_code()
             virial_test_code()
         else:
-            plt.figure(figsize=(20,10))
+            plt.figure(figsize=(10,8))
             plt.subplot(2,2,1)
             loss_train_code()
             loss_test_code()

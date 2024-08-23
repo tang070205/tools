@@ -70,4 +70,4 @@ xlabel('Correlation Time (ps)')
 ylabel(r'$\kappa$ (W/m/K)')
 title('(d)')
 
-savefig('emd.png')
+savefig('emd.png', dpi=150, bbox_inches='tight')

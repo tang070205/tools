@@ -64,7 +64,7 @@ ylim([0, 6])
 gca().set_yticks(range(0, 7, 1))
 ylabel(r'$\nu$ (THz)',fontsize=15)
 legend(['DFT', 'NEP']) #只画gpumd就只用NEP图例即可，或者不加图例
-savefig('phonon.png')
+savefig('phonon.png', dpi=150, bbox_inches='tight')
 
 
             
