@@ -34,7 +34,7 @@ do
              else
                    echo Energy=$ener Lattice=\"$latt\" "Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> $writ_dire/$writ_file
              fi
-             taucx_values=$(grep "tauc" running_scf.log | awk '{print $2}')
+             taucx_values=$(grep "tauc" $i | awk '{print $2}')
              max_taucx=0
              for value in $tauc_values; do
                if (( $(echo "$value > $max_taucx" | bc -l) )); then
