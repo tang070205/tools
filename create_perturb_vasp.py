@@ -11,7 +11,6 @@ import shutil
 import subprocess
 import dpdata
 import sys
-import glob
 
 def main():
     if len(sys.argv) != 2:

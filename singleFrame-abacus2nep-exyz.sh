@@ -34,13 +34,14 @@ do
              else
                    echo Energy=$ener Lattice=\"$latt\" "Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> $writ_dire/$writ_file
              fi
-             scf_dir=$(echo "$i" | sed 's/\/running_scf.log//g')
-             cif_file="${scf_dir}/STRU.cif"
-             cell_a=$(grep "_cell_length_a" "$cif_file" | awk '{print $2}')
-             cell_b=$(grep "_cell_length_b" "$cif_file" | awk '{print $2}')
-             cell_c=$(grep "_cell_length_c" "$cif_file" | awk '{print $2}')
+             #scf_dir=$(echo "$i" | sed 's/\/running_scf.log//g')
+             #cif_file="${scf_dir}/STRU.cif"
+             #cell_a=$(grep "_cell_length_a" "$cif_file" | awk '{print $2}')
+             #cell_b=$(grep "_cell_length_b" "$cif_file" | awk '{print $2}')
+             #cell_c=$(grep "_cell_length_c" "$cif_file" | awk '{print $2}')
+             #grep "tauc" $i | awk '{printf "%.6f %.6f %.6f\n", $2*'$cell_a', $3*'$cell_b', $4*'$cell_c'}' > $writ_dire/position.tem
+             grep "tauc" $i | awk '{printf "%.6f %.6f %.6f\n", $2, $3, $4}' > $writ_dire/position.tem
              grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" $i | tail -n $syst_numb_atom | awk '{print $1}' | sed 's/[0-9]//g' >>$writ_dire/symb.tem
-             grep "taud" $i | awk '{printf "%.6f %.6f %.6f\n", $2*'$cell_a', $3*'$cell_b', $4*'$cell_c'}' > $writ_dire/position.tem
              grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" $i | tail -n $syst_numb_atom |awk '{printf "%.6f %.6f %.6f\n", $2,$3,$4}' > $writ_dire/force.tem
              paste $writ_dire/symb.tem $writ_dire/position.tem $writ_dire/force.tem >> $writ_dire/$writ_file
              rm -f $writ_dire/*.tem
