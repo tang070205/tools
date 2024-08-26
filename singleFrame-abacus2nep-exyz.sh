@@ -34,14 +34,8 @@ do
              else
                    echo Energy=$ener Lattice=\"$latt\" "Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> $writ_dire/$writ_file
              fi
-             taucx_values=$(grep "tauc" $i | awk '{print $2}')
-             max_taucx=0
-             for value in $tauc_values; do
-               if (( $(echo "$value > $max_taucx" | bc -l) )); then
-                 max_taucx=$value
-                 fi
-             done
-             if (( $(echo "$max_tauc < 1" | bc -l) ))
+             taucx_max=$(grep "tauc" $i | awk '{ if ($2 > max) max=$2; } END {print max}')
+             if [ $(echo "$tauc_max < 1" | bc -l) -eq 1 ]
              then
                scf_dir=$(echo "$i" | sed 's/\/running_scf.log//g')
                cif_file="${scf_dir}/STRU.cif"
