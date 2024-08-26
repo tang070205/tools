@@ -30,7 +30,7 @@ perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=int(sys.argv[1]),
                                                     cell_pert_fraction=0.03,
                                                     atom_pert_distance=0.15,
                                                     atom_pert_style='uniform')
-for j in range(perturbations):  
+for j in range(int(sys.argv[1])):  
     train_directory = f'train-{j+1}'
     os.makedirs(train_directory, exist_ok=True)
     poscar_filename = f'POSCAR{j+1}'
