@@ -35,7 +35,7 @@ do
                    echo Energy=$ener Lattice=\"$latt\" "Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> $writ_dire/$writ_file
              fi
              taucx_max=$(grep "tauc" $i | awk '{ if ($2 > max) max=$2; } END {print max}')
-             if [ $(echo "$tauc_max < 1" | bc -l) -eq 1 ]
+             if [ $(echo "$taucx_max < 1" | bc -l) -eq 1 ]
              then
                scf_dir=$(echo "$i" | sed 's/\/running_scf.log//g')
                cif_file="${scf_dir}/STRU.cif"
@@ -48,7 +48,7 @@ do
              fi
              grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" $i | tail -n $syst_numb_atom | awk '{print $1}' | sed 's/[0-9]//g' >>$writ_dire/symb.tem
              grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" $i | tail -n $syst_numb_atom |awk '{printf "%.6f %.6f %.6f\n", $2,$3,$4}' > $writ_dire/force.tem
-             paste $writ_dire/symb.tem $writ_dire/position.tem $writ_dire/force.tem >> $writ_dire/$writ_file
+             paste -d ' ' $writ_dire/symb.tem $writ_dire/position.tem $writ_dire/force.tem >> $writ_dire/$writ_file
              rm -f $writ_dire/*.tem
 	     echo -ne "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\bProgress: $N_count/$N_case "
              N_count=$((N_count + 1))
