@@ -6,13 +6,14 @@ import sys
 
 def main():
     if len(sys.argv) != 3:
+        print("Usage: 需要自备INPUT-scf")
         print("Usage: python3 perturb.py <number_of_perturbations> <poscar_file>")
-        print("Usage: 需要POSCAR.STRU,该文件是poscar_file通过atomkit转换得到")
         sys.exit(1)
 if __name__ == "__main__":
     main()
 
 poscar_file = sys.argv[2]
+subprocess.run(f"echo '1\n 101\n  175 {poscar_file}' | atomkit", shell=True)
 ntype = dpdata.System(poscar_file, fmt="vasp/poscar").get_ntypes()
 with open(f"{poscar_file}.STRU", 'r') as file:
     upf_orb = ''.join([next(file) for _ in range(2 * ntype + 3)])
@@ -48,6 +49,8 @@ if os.path.isdir(folder_path):
         subfolder_path = os.path.join(folder_path, subfolder_name)
         if os.path.isdir(subfolder_path):
             shutil.copy("INPUT-scf", os.path.join(subfolder_path, 'INPUT'))
-            shutil.copy("KPT-scf", os.path.join(subfolder_path, 'KPT'))
+            os.chdir(subfolder_path)
+            atomkit_command = 'echo "3\n 301\n 0\n 101 STRU\n 0.03" | atomkit'
+            subprocess.run(atomkit_command, shell=True)
             os.chdir(original_cwd)
 
