@@ -1,9 +1,11 @@
 #!/bin/bash
 ### HOW TO USE #################################################################################
-### SYNTAX: ./outcars2nepDataset.sh dire_name   
-###     NOTE: 1).'dire_name' is the directory containing OUTCARs
-### Email: yanzhowang@gmail.com if any questions
-### Modified by Shunda Chen
+### SYNTAX: ./singleFrame-abacus2nep-exyz.sh dire_name   
+###     NOTE: 1).'dire_name' is the directory containing running_scf.logs
+### Email: tang070205@proton.me if have questions
+### Modified by Yanzhou Wang 
+### Modified by Shunda Chen 
+### Modified by Benrui Tang
 ################################################################################################
 #--- DEFAULT ASSIGNMENTSts ---------------------------------------------------------------------
 isol_ener=0     # Shifted energy, specify the value?
@@ -28,14 +30,20 @@ do
              ener=$(grep "FINAL_ETOT_IS" $i | awk '{printf "%.6f\n", $2 - '$syst_numb_atom' * '$isol_ener'}')
              if [ $viri_logi -eq 1 ]
              then
-                   conversion_value=$(grep "Volume (A^3)" $i |awk '{print $4/1602.1766208}')
+                   conversion_value=$(grep "Volume (A^3)" $i |awk '{print $4/(1602.1766208 * '$syst_numb_atom')}')
                    viri=$(grep -A 4 "TOTAL-STRESS" $i | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.6f ", $i * '$conversion_value'}}' |xargs)
                    echo Energy=$ener Lattice=\"$latt\" Virial=\"$viri\" "Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> $writ_dire/$writ_file
              else
                    echo Energy=$ener Lattice=\"$latt\" "Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> $writ_dire/$writ_file
              fi
-             taucx_max=$(grep "tauc" $i | awk '{ if ($2 > max) max=$2; } END {print max}')
-             if [ $(echo "$taucx_max < 1" | bc -l) -eq 1 ]
+             taucx_values=$(grep "tauc" running_scf.log | awk '{print $2}')
+             max_taucx=0
+             for value in $tauc_values; do
+               if (( $(echo "$value > $max_taucx" | bc -l) )); then
+                 max_taucx=$value
+                 fi
+             done
+             if (( $(echo "$max_tauc < 1" | bc -l) ))
              then
                scf_dir=$(echo "$i" | sed 's/\/running_scf.log//g')
                cif_file="${scf_dir}/STRU.cif"
@@ -48,13 +56,10 @@ do
              fi
              grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" $i | tail -n $syst_numb_atom | awk '{print $1}' | sed 's/[0-9]//g' >>$writ_dire/symb.tem
              grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" $i | tail -n $syst_numb_atom |awk '{printf "%.6f %.6f %.6f\n", $2,$3,$4}' > $writ_dire/force.tem
-             paste -d ' ' $writ_dire/symb.tem $writ_dire/position.tem $writ_dire/force.tem >> $writ_dire/$writ_file
+             paste $writ_dire/symb.tem $writ_dire/position.tem $writ_dire/force.tem >> $writ_dire/$writ_file
              rm -f $writ_dire/*.tem
 	     echo -ne "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\bProgress: $N_count/$N_case "
              N_count=$((N_count + 1))
 done
 echo
 dos2unix $writ_dire/$writ_file
-
-
-
