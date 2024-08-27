@@ -28,7 +28,7 @@ do
              ener=$(grep "FINAL_ETOT_IS" $i | awk '{printf "%.6f\n", $2 - '$syst_numb_atom' * '$isol_ener'}')
              if [ $viri_logi -eq 1 ]
              then
-                   conversion_value=$(grep "Volume (A^3)" $i |awk '{print $4/(1602.1766208 * '$syst_numb_atom')}')
+                   conversion_value=$(grep "Volume (A^3)" $i |awk '{print $4/1602.1766208}')
                    viri=$(grep -A 4 "TOTAL-STRESS" $i | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.6f ", $i * '$conversion_value'}}' |xargs)
                    echo Energy=$ener Lattice=\"$latt\" Virial=\"$viri\" "Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> $writ_dire/$writ_file
              else
