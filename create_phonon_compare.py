@@ -44,20 +44,15 @@ data[:, 1] = data[:, 1] / 33.35641
 np.savetxt("phonon.out", data, comments='', fmt='%1.6f')
 """
 #没有phonopy-bandplot --gnuplot > phonon.out这样生成phonon.out，就不加这段和下面仨加vasp注释的，相当于只画gpumd的结果
-data_vasp = np.loadtxt('phonon.out')
-max_value = data_vasp[2:,0].max()
-data_vasp[2:,0] = data_vasp[2:,0] / max_value * max(kpath) #第一个数是phonon.out文件最大横坐标，第二个文件时omega2最大横坐标
-with open('phonon.out', 'r') as file: #vasp，以下三行
-    lines = file.readlines()
-values = lines[1].strip().split()
+data_vasp = np.loadtxt('phonon.out') #如果没有vasp的结果，就不加这段及下面画图那行
+vasp_path = data_vasp[:,0] / max(data_vasp[:,0]) * max(kpath) #第一个数是phonon.out文件最大横坐标，第二个文件时omega2最大横坐标
 
 figure(figsize=(9, 8))
-plt.scatter(data_vasp[2:, 0], data_vasp[2:, 1], marker='.', edgecolors='C1', facecolors='none')#vasp
+plt.scatter(vasp_path, data_vasp[:,1], marker='.', edgecolors='C1', facecolors='none')#vasp
 plot(kpath, nu, color='C0', lw=1)
 xlim([0, max(kpath)])
-for value in values[2:-1]: #vasp，这一整个for循环
-    float_value = float(value)
-    plt.axvline(float_value / max_value * max(kpath), color='black', linestyle='--') 
+for sym_point in sym_points[1:-1]:
+    plt.axvline(sym_point, color='black', linestyle='--') 
 gca().set_xticks(sym_points)
 gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$'])
 ylim([0, 6])  
