@@ -8,13 +8,20 @@
         准备好原始构型、INCAR、POTCAR 直接python3 create-strain_deform-rattle-perturb.py即可
 """
 
-import os
-import shutil
-import subprocess
+import os, sys, subprocess, shutil
 import dpdata
 import numpy as np
 from ase.io import write,read
 from hiphive.structure_generation.rattle import generate_mc_rattled_structures
+
+if sys.argv[1] == 'abacus':
+    poscar_file = sys.argv[2]
+    subprocess.run(f"echo '1\n 101\n  175 {poscar_file}' | atomkit", shell=True)
+    ntype = dpdata.System(poscar_file, fmt="vasp/poscar").get_ntypes()
+    with open(f"{poscar_file}.STRU", 'r') as file:
+         upf_orb = ''.join([next(file) for _ in range(2 * ntype + 3)])
+else:
+    None
 
 original_cwd = os.getcwd()
 prototype_structures = {}
@@ -69,13 +76,23 @@ def convert_xyz_to_poscar():
          os.chdir(folder_path)
          xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
          write("POSCAR", read(xyz_file, format="extxyz"))
+         if sys.argv[1] == 'abacus':
+             d_poscar = dpdata.System(os.path.join(train_directory, 'POSCAR'), fmt="vasp/poscar")
+             d_poscar.to("abacus/stru", os.path.join(train_directory, "STRU"))
+             with open(os.path.join(train_directory, "STRU"), 'r') as file:
+                 lines = file.readlines()
+                 lines[:ntype+1] = upf_orb
+                 with open(os.path.join(train_directory, "STRU"), 'w') as file:
+                     file.writelines(lines)
+         else: 
+             None
 convert_xyz_to_poscar()
 os.chdir(original_cwd)
 print('Number of training structures:', len(training_structures))
 
 n_structures = 10 #生成个数
 rattle_std = 0.03 #原子位移决定参数
-d_min = 1.8 #最小原子间距离
+d_min = 2 #最小原子间距离
 n_iter = 5 #原子位移决定参数
 #位移=n_iter**0.5 * rattle_std
 size_vals = {}
@@ -111,6 +128,16 @@ def convert_xyz_to_poscar():
          os.chdir(folder_path)
          xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
          write("POSCAR", read(xyz_file, format="extxyz"))
+         if sys.argv[1] == 'abacus':
+             d_poscar = dpdata.System(os.path.join(train_directory, 'POSCAR'), fmt="vasp/poscar")
+             d_poscar.to("abacus/stru", os.path.join(train_directory, "STRU"))
+             with open(os.path.join(train_directory, "STRU"), 'r') as file:
+                 lines = file.readlines()
+                 lines[:ntype+1] = upf_orb
+                 with open(os.path.join(train_directory, "STRU"), 'w') as file:
+                     file.writelines(lines)
+         else: 
+             None
 convert_xyz_to_poscar()
 os.chdir(original_cwd)
 
@@ -147,6 +174,16 @@ for i in range(1, 7): #几个原始构型就写到几+1，我这是6个原始构
         poscar_filename = f'POSCAR{k+1}'
         perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=k)
         shutil.move(poscar_filename, os.path.join(train_directory, 'POSCAR'))
+        if sys.argv[1] == 'abacus':
+             d_poscar = dpdata.System(os.path.join(train_directory, 'POSCAR'), fmt="vasp/poscar")
+             d_poscar.to("abacus/stru", os.path.join(train_directory, "STRU"))
+             with open(os.path.join(train_directory, "STRU"), 'r') as file:
+                 lines = file.readlines()
+                 lines[:ntype+1] = upf_orb
+                 with open(os.path.join(train_directory, "STRU"), 'w') as file:
+                     file.writelines(lines)
+        else: 
+             None
     os.chdir('..')
 os.chdir(original_cwd)
 
