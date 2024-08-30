@@ -33,7 +33,7 @@ def loss_test_code():
 
 def energy_train_code():
     plot(energy_train[:, 1], energy_train[:, 0], '.', color=color_train)
-    plot(linspace(-7,-6), linspace(-7,-6), '-')
+    plot(linspace(-9,-8), linspace(-9,-8), '-')
     xlabel('DFT energy (eV/atom)')
     ylabel('NEP energy (eV/atom)')
     legend(handles=legend_train, frameon=False)
@@ -52,7 +52,7 @@ def energy_test_code():
 def force_train_code():
     plot(force_train[:, 3:6], force_train[:, 0:3], '.', color=color_train)
     #plot(force_train[:, 3:6], force_train[:, 0:3], '.')
-    plot(linspace(-25,25), linspace(-25,25), '-')
+    plot(linspace(-15,15), linspace(-15,15), '-')
     xlabel('DFT force (eV/A)')
     ylabel('NEP force (eV/A)')
     legend(handles=legend_train, frameon=False)
@@ -73,7 +73,7 @@ def force_test_code():
 
 def virial_train_code():
     plot(virial_train[:, 6:12], virial_train[:, 0:6], '.', color=color_train)
-    plot(linspace(-3,5), linspace(-3,5), '-')
+    plot(linspace(-2,4), linspace(-2,4), '-')
     xlabel('DFT virial (eV/atom)')
     ylabel('NEP virial (eV/atom)')
     legend(handles=legend_train, frameon=False)
