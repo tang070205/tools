@@ -23,7 +23,7 @@ root_path=`pwd`
 N_case=$(find -L $read_dire -name "running_scf.log" | wc -l)
 N_count=1
 
-for file in `find $read_dire -name "running_scf.logR"`;do
+for file in `find $read_dire -name "running_scf.log"`;do
 	        configuration=$(echo "$file" |sed 's/\/running_scf.log//g' | awk -F'/' '{print $(NF-2)"/"$(NF-1)"/"$NF}')
 		start_lines=(`sed -n  '/aborting loop because EDIFF is reached/=' $file`)
 		end_lines=(`sed -n  '/[^ML] energy  without entropy/=' $file`)
