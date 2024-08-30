@@ -14,15 +14,6 @@ import numpy as np
 from ase.io import write,read
 from hiphive.structure_generation.rattle import generate_mc_rattled_structures
 
-if sys.argv[1] == 'abacus':
-    poscar_file = sys.argv[2]
-    subprocess.run(f"echo '1\n 101\n  175 {poscar_file}' | atomkit", shell=True)
-    ntype = dpdata.System(poscar_file, fmt="vasp/poscar").get_ntypes()
-    with open(f"{poscar_file}.STRU", 'r') as file:
-         upf_orb = ''.join([next(file) for _ in range(2 * ntype + 3)])
-else:
-    None
-
 original_cwd = os.getcwd()
 prototype_structures = {}
 prototype_structures['1'] = read('POSCAR1') #读取原型结构，想读几个写几个
@@ -31,6 +22,14 @@ prototype_structures['3'] = read('POSCAR3')
 prototype_structures['4'] = read('POSCAR4')
 prototype_structures['5'] = read('POSCAR5')
 prototype_structures['6'] = read('POSCAR6')
+
+if sys.argv[1] == 'abacus':
+    subprocess.run(f"echo '1\n 101\n  175 POSCAR1' | atomkit", shell=True)
+    ntype = dpdata.System('POSCAR1', fmt="vasp/poscar").get_ntypes()
+    with open("POSCAR1.STRU", 'r') as file:
+         upf_orb = ''.join([next(file) for _ in range(2 * ntype + 3)])
+else:
+    None
 
 def generate_strained_structure(prim, strain_lim):
     strains = np.random.uniform(*strain_lim, (3, ))
