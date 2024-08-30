@@ -194,9 +194,15 @@ for folder_name in os.listdir(original_cwd):
         for subfolder_name in os.listdir(folder_path):
             subfolder_path = os.path.join(folder_path, subfolder_name)
             if os.path.isdir(subfolder_path):
-                shutil.copy("INCAR", subfolder_path)
-                os.chdir(subfolder_path)
-                vaspkit_command = "vaspkit -task 102 -kpr 0.025" #K-Spacing取0.04
-                subprocess.run(vaspkit_command, shell=True)
+                if sys.argv[1] == 'abacus':
+                    shutil.copy("INPUT-scf", os.path.join(subfolder_path, 'INPUT'))
+                    os.chdir(subfolder_path)
+                    atomkit_command = 'echo "3\n 301\n 0\n 101 STRU\n 0.04" | atomkit'
+                    subprocess.run(atomkit_command, shell=True)
+                else: 
+                    shutil.copy("INCAR-scf", os.path.join(subfolder_path, 'INCAR'))
+                    os.chdir(subfolder_path)
+                    vaspkit_command = "vaspkit -task 102 -kpr 0.025" #K-Spacing取0.04
+                    subprocess.run(vaspkit_command, shell=True)
                 os.chdir(original_cwd)
 
