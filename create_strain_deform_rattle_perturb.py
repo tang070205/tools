@@ -16,12 +16,11 @@ from hiphive.structure_generation.rattle import generate_mc_rattled_structures
 
 original_cwd = os.getcwd()
 prototype_structures = {}
-prototype_structures['1'] = read('POSCAR1') #读取原型结构，想读几个写几个
+prototype_structures['1'] = read('POSCAR1') #读取原型结构，想读几个写几
 prototype_structures['2'] = read('POSCAR2') #
 prototype_structures['3'] = read('POSCAR3')
 prototype_structures['4'] = read('POSCAR4')
 prototype_structures['5'] = read('POSCAR5')
-prototype_structures['6'] = read('POSCAR6')
 
 if sys.argv[1] == 'abacus':
     subprocess.run(f"echo '1\n 101\n  175 POSCAR1' | atomkit", shell=True)
@@ -76,12 +75,12 @@ def convert_xyz_to_poscar():
          xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
          write("POSCAR", read(xyz_file, format="extxyz"))
          if sys.argv[1] == 'abacus':
-             d_poscar = dpdata.System(os.path.join(train_directory, 'POSCAR'), fmt="vasp/poscar")
-             d_poscar.to("abacus/stru", os.path.join(train_directory, "STRU"))
-             with open(os.path.join(train_directory, "STRU"), 'r') as file:
+             d_poscar = dpdata.System('POSCAR', fmt="vasp/poscar")
+             d_poscar.to("abacus/stru", "STRU")
+             with open("STRU", 'r') as file:
                  lines = file.readlines()
                  lines[:ntype+1] = upf_orb
-                 with open(os.path.join(train_directory, "STRU"), 'w') as file:
+                 with open("STRU", 'w') as file:
                      file.writelines(lines)
          else: 
              None
@@ -89,18 +88,17 @@ convert_xyz_to_poscar()
 os.chdir(original_cwd)
 print('Number of training structures:', len(training_structures))
 
-n_structures = 10 #生成个数
+n_structures = 20 #生成个数
 rattle_std = 0.03 #原子位移决定参数
-d_min = 2 #最小原子间距离
+d_min = 1.5 #最小原子间距离
 n_iter = 5 #原子位移决定参数
 #位移=n_iter**0.5 * rattle_std
 size_vals = {}
-size_vals['1'] = [(1,1,1), (1,2,1)] #扩胞大小
+size_vals['1'] = [(1,1,1)] #扩胞大小
 size_vals['2'] = [(1,1,1)] #前面中括号名要跟上面一样
 size_vals['3'] = [(1,1,1)]
 size_vals['4'] = [(1,1,1)]
 size_vals['5'] = [(1,1,1)]
-size_vals['6'] = [(1,1,1)]
 
 rattle_folder = 'rattle'
 for name, prim in prototype_structures.items():
@@ -128,14 +126,13 @@ def convert_xyz_to_poscar():
          xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
          write("POSCAR", read(xyz_file, format="extxyz"))
          if sys.argv[1] == 'abacus':
-             d_poscar = dpdata.System(os.path.join(train_directory, 'POSCAR'), fmt="vasp/poscar")
-             d_poscar.to("abacus/stru", os.path.join(train_directory, "STRU"))
-             with open(os.path.join(train_directory, "STRU"), 'r') as file:
+             d_poscar = dpdata.System('POSCAR', fmt="vasp/poscar")
+             d_poscar.to("abacus/stru", "STRU")
+             with open("STRU", 'r') as file:
                  lines = file.readlines()
                  lines[:ntype+1] = upf_orb
-                 with open(os.path.join(train_directory, "STRU"), 'w') as file:
+                 with open("STRU", 'w') as file:
                      file.writelines(lines)
-         else: 
              None
 convert_xyz_to_poscar()
 os.chdir(original_cwd)
@@ -155,21 +152,21 @@ if __name__ == "__main__":
     remove_parentheses(target_directory)
 
 original_cwd = os.getcwd()
-for i in range(1, 7): #几个原始构型就写到几+1，我这是6个原始构型
+for i in range(1, 6): #几个原始构型就写到几+1，我这是6个原始构型
     perturb_directory = f'perturb-{i}'
     os.makedirs(perturb_directory, exist_ok=True)
     shutil.copyfile(f'POSCAR{i}', os.path.join(f'perturb-{i}', 'CONTCAR'))
     os.chdir(perturb_directory)
 
-    for j in range(1, 26): #与下面两个25对应，生成25个微扰结构和文件夹
+    for j in range(20): #与下面两个25对应，生成25个微扰结构和文件夹
         train_directory = f'perturb-{i}-{j}'
         os.makedirs(train_directory, exist_ok=True)
         directory = os.getcwd()
-        perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=25,
-                                                           cell_pert_fraction=0.03,
-                                                           atom_pert_distance=0.15,
+        perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=20,
+                                                           cell_pert_fraction=0.05,
+                                                           atom_pert_distance=0.2,
                                                            atom_pert_style='uniform')
-    for k in range(25):
+    for k in range(20):
         poscar_filename = f'POSCAR{k+1}'
         perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=k)
         shutil.move(poscar_filename, os.path.join(train_directory, 'POSCAR'))
