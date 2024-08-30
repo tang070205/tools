@@ -152,23 +152,22 @@ if __name__ == "__main__":
     remove_parentheses(target_directory)
 
 original_cwd = os.getcwd()
-for i in range(1, 6): #几个原始构型就写到几+1，我这是6个原始构型
+for i in range(1, 6):
     perturb_directory = f'perturb-{i}'
     os.makedirs(perturb_directory, exist_ok=True)
     shutil.copyfile(f'POSCAR{i}', os.path.join(f'perturb-{i}', 'CONTCAR'))
     os.chdir(perturb_directory)
-
-    for j in range(20): #与下面两个25对应，生成25个微扰结构和文件夹
+    num_perturb = 20
+    for j in range(num_perturb):
         train_directory = f'perturb-{i}-{j}'
         os.makedirs(train_directory, exist_ok=True)
         directory = os.getcwd()
-        perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=20,
+        perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=num_perturb,
                                                            cell_pert_fraction=0.05,
                                                            atom_pert_distance=0.2,
                                                            atom_pert_style='uniform')
-    for k in range(20):
-        poscar_filename = f'POSCAR{k+1}'
-        perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=k)
+        poscar_filename = f'POSCAR{j}'
+        perturbed_system.to_vasp_poscar(poscar_filename, frame_idx=j)
         shutil.move(poscar_filename, os.path.join(train_directory, 'POSCAR'))
         if sys.argv[1] == 'abacus':
              d_poscar = dpdata.System(os.path.join(train_directory, 'POSCAR'), fmt="vasp/poscar")
@@ -198,7 +197,7 @@ for folder_name in os.listdir(original_cwd):
                 else: 
                     shutil.copy("INCAR-scf", os.path.join(subfolder_path, 'INCAR'))
                     os.chdir(subfolder_path)
-                    vaspkit_command = "vaspkit -task 102 -kpr 0.025" #K-Spacing取0.04
+                    vaspkit_command = "vaspkit -task 102 -kpr 0.04" #K-Spacing取0.04
                     subprocess.run(vaspkit_command, shell=True)
                 os.chdir(original_cwd)
 
