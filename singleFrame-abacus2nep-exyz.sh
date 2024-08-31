@@ -36,7 +36,7 @@ do
              else
                    echo Energy=$ener Lattice=\"$latt\" "Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> $writ_dire/$writ_file
              fi
-             taucx_values=$(grep "tauc" running_scf.log | awk '{print $2}')
+             taucx_values=$(grep "tauc" running_scf.log | awk '{print $4}')
              max_taucx=0
              for value in $tauc_values; do
                if (( $(echo "$value > $max_taucx" | bc -l) )); then
@@ -45,11 +45,9 @@ do
              done
              if (( $(echo "$max_tauc < 1" | bc -l) ))
              then
-               scf_dir=$(echo "$i" | sed 's/\/running_scf.log//g')
-               cif_file="${scf_dir}/STRU.cif"
-               cell_a=$(grep "_cell_length_a" "$cif_file" | awk '{print $2}')
-               cell_b=$(grep "_cell_length_b" "$cif_file" | awk '{print $2}')
-               cell_c=$(grep "_cell_length_c" "$cif_file" | awk '{print $2}')
+               cell_a=$(grep "NORM_A" $i | awk '{print $3}')
+               cell_b=$(grep "NORM_B" $i | awk '{print $3}')
+               cell_c=$(grep "NORM_B" $i | awk '{print $3}')
                grep "tauc" $i | awk '{printf "%.6f %.6f %.6f\n", $2*'$cell_a', $3*'$cell_b', $4*'$cell_c'}' > $writ_dire/position.tem
              else
                grep "tauc" $i | awk '{printf "%.6f %.6f %.6f\n", $2, $3, $4}' > $writ_dire/position.tem
