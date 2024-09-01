@@ -162,14 +162,14 @@ original_cwd = os.getcwd()
 for i in range(1, 6):
     perturb_directory = f'perturb-{i}'
     os.makedirs(perturb_directory, exist_ok=True)
-    shutil.copyfile(f'POSCAR{i}', os.path.join(f'perturb-{i}', 'CONTCAR'))
+    shutil.copyfile(f'POSCAR{i}', os.path.join(f'perturb-{i}', 'POSCAR'))
     os.chdir(perturb_directory)
     num_perturb = 20
     for j in range(num_perturb):
         train_directory = f'perturb-{i}-{j}'
         os.makedirs(train_directory, exist_ok=True)
         directory = os.getcwd()
-        perturbed_system = dpdata.System('CONTCAR').perturb(pert_num=num_perturb,
+        perturbed_system = dpdata.System('POSCAR').perturb(pert_num=num_perturb,
                                                            cell_pert_fraction=0.05,
                                                            atom_pert_distance=0.2,
                                                            atom_pert_style='uniform')
