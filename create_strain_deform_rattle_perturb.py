@@ -14,6 +14,13 @@ import numpy as np
 from ase.io import write,read
 from hiphive.structure_generation.rattle import generate_mc_rattled_structures
 
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python3 create_strain_deform_rattle_perturb.py abacus/vasp")
+        sys.exit(1)
+if __name__ == "__main__":
+    main()
+
 original_cwd = os.getcwd()
 prototype_structures = {}
 prototype_structures['1'] = read('POSCAR1') #读取原型结构，想读几个写几
