@@ -1,11 +1,12 @@
 #!/bin/bash
 ### HOW TO USE #################################################################################
-### SYNTAX: ./outcar2nep-exyz.sh dire_name
-###     NOTE: 1).'dire_name' is the directory containing OUTCARs
+### SYNTAX: ./multipleFrames-abacus2nep-exyz.sh dire_name
+###     NOTE: 1).'dire_name' is the directory containing running_md.log and MD_dump file.
 ### Email: yanzhowang@gmail.com if any questions
 ### Modified by Yuwen Zhang
 ### Modified by Shunda Chen
 ### Modified by Zihan Yan
+### Modified by Benrui Tang
 ################################################################################################
 #--- DEFAULT ASSIGNMENTS ---------------------------------------------------------------------
 isol_ener=0     # Shifted energy, specify the value?
@@ -17,51 +18,42 @@ if [ -z "$read_dire" ]; then
         exit 1
 fi
 
-writ_dire="NEPdataset-multiple_frames"
-writ_file="NEP-dataset.xyz"
-error_file="non_converged_files.txt"
+writ_dire="NEPdataset"; writ_file="NEP-dataset.xyz";
+rm -rf $writ_dire; mkdir $writ_dire
 
-rm -rf "$writ_dire"
-mkdir "$writ_dire"
-rm -f "$error_file"
+configuration=$(pwd | awk -F'/' '{print $(NF-2)"/"$(NF-1)"/"$NF}')
+syst_numb_atom=$(grep "TOTAL ATOM NUMBER" running_md.log |awk '{print $5}')
+ener_values=($(grep 'etot' running_md.log |awk '{print $4}'))
+if [[ $viri_logi -eq 1 ]]; then
+    mdstep_lines=($(grep -n 'MDSTEP' MD_dump | awk -F: '{print $1+12+'$syst_numb_atom'}'))
+else
+    mdstep_lines=($(grep -n 'MDSTEP' MD_dump | awk -F: '{print $1+9+'$syst_numb_atom'}'))
+fi
+conversion_value=$(grep "Volume (A^3)" running_md.log |awk '{print $4/1602.1766208}')
 
-N_count=1
-for file in "${converged_files[@]}"; do
-    configuration=$(basename "$(dirname "$file")")
-    start_lines=($(sed -n '/aborting loop because EDIFF is reached/=' "$file"))
-    end_lines=($(sed -n '/[^ML] energy  without entropy/=' "$file"))
-    ion_numb_arra=($(grep "ions per type" "$file" | tail -n 1 | awk -F"=" '{print $2}'))
-    ion_symb_arra=($(grep "POTCAR:" "$file" | awk '{print $3}' | awk -F"_" '{print $1}' | awk '!seen[$0]++'))
-    syst_numb_atom=$(grep "number of ions" "$file" | awk '{print $12}')
 
-    for ((i=0; i<${#mdstep_lines[@]}; i++)); do
-        start_line=${mdstep_lines[i]}
-        end_line=${mdstep_lines[i+1]}
+for ((i=0; i<${#mdstep_lines[@]}-1; i++)); do
+    start_line=${mdstep_lines[i]}
+    end_line=${mdstep_lines[i+1]}
+    ener=${ener_values[i+1]}
 
-        sed -n "${start_line},${end_line}p" "$file" > temp.file
-        echo "$syst_numb_atom" >> "$writ_dire/$writ_file"
-        latt=$(grep -A 7 "VOLUME and BASIS-vectors are now" temp.file | tail -n 3 | sed 's/-/ -/g' | awk '{print $1,$2,$3}' | xargs)
-        ener=$(grep "free  energy   TOTEN" temp.file | tail -1 | awk '{printf "%.10f\n", $5 - '"$syst_numb_atom"' * '"$isol_ener"'}')
+    sed -n "${start_line},${end_line}p" MD_dump > temp.file
+    echo "$syst_numb_atom" >> "$writ_dire/$writ_file"
+    latt=$(grep -A 3 "LATTICE_VECTORS" temp.file | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i}}' |xargs)
 
-        if [[ $viri_logi -eq 1 ]]; then
-            viri=$(grep -A 20 "FORCE on cell =-STRESS" temp.file | grep "Total " | tail -n 1 | awk '{print $2,$5,$7,$5,$3,$6,$7,$6,$4}')
-            echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Virial=\"$viri\" pbc=\"T T T\" Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
-        else
-            echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Properties=species:S:1:pos:R:3:forces:R:3 pbc=\"T T T\"" >> "$writ_dire/$writ_file"
-        fi
+    if [[ $viri_logi -eq 1 ]]; then
+        viri=$(grep -A 3 "VIRIAL (kbar)" temp.file | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i * '$conversion_value'}}' |xargs)
+        echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Energy=$ener Virial=\"$viri\" pbc=\"T T T\" Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
+    else
+        echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Properties=species:S:1:pos:R:3:forces:R:3 pbc=\"T T T\"" >> "$writ_dire/$writ_file"
+    fi
 
-        for((j=0;j<${#ion_numb_arra[*]};j++));do
-            printf ''${ion_symb_arra[j]}'%.0s\n' $(seq 1 1 ${ion_numb_arra[j]}) >> $writ_dire/symb.tem
-        done
-
-        grep -A $((syst_numb_atom + 1)) "TOTAL-FORCE (eV/Angst)" temp.file | tail -n $syst_numb_atom > "$writ_dire/posi_forc.tem"
-        paste "$writ_dire/symb.tem" "$writ_dire/posi_forc.tem" >> "$writ_dire/$writ_file"
-        rm -f "$writ_dire"/*.tem
-    done
-    rm -f temp.file
-
+    grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{print $2}' >$writ_dire/symb.tem
+    grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{for (i=3; i<=8; i++) printf "%.6f ", $i; printf "\n"}' > $writ_dire/posi_force.tem
+    paste $writ_dire/symb.tem $writ_dire/posi_force.tem >> $writ_dire/$writ_file
+    rm -f $writ_dire/*.tem
 done
+rm -f temp.file
 
-echo -ne "\nConversion complete.\n"
 dos2unix "$writ_dire/$writ_file"
 echo "All done."
