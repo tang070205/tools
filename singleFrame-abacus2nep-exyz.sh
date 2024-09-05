@@ -55,3 +55,5 @@ do
 done
 echo
 dos2unix $writ_dire/$writ_file
+echo "All done."
+
