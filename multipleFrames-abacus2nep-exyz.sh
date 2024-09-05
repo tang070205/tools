@@ -10,7 +10,7 @@
 ################################################################################################
 #--- DEFAULT ASSIGNMENTS ---------------------------------------------------------------------
 isol_ener=0     # Shifted energy, specify the value?
-viri_logi=1     # Logical value for virial, true=1, false=0
+viri_logi=0     # Logical value for virial, true=1, false=0
 #--------------------------------------------------------------------------------------------
 read_dire=$1
 if [ -z "$read_dire" ]; then
@@ -30,34 +30,33 @@ else
     mdstep_lines=($(grep -n 'MDSTEP' MD_dump | awk -F: '{print $1+9+'$syst_numb_atom'}'))
 fi
 conversion_value=$(grep "Volume (A^3)" running_md.log |awk '{print $4/1602.1766208}')
-total_frames=$(( ${#mdstep_lines[@]} - 1 ))
+N_counts=$(( ${#mdstep_lines[@]} - 1 ))
 
-for ((i=0; i<${#mdstep_lines[@]}-1; i++)); do
-    start_line=${mdstep_lines[i]}
-    end_line=${mdstep_lines[i+1]}
-    ener=${ener_values[i+1]}
+
+for ((i=1; i<${#mdstep_lines[@]}; i++)); do
+    start_line=${mdstep_lines[i-1]}
+    end_line=${mdstep_lines[i]}
+    ener=${ener_values[i]}
 
     sed -n "${start_line},${end_line}p" MD_dump > temp.file
     echo "$syst_numb_atom" >> "$writ_dire/$writ_file"
     latt=$(grep -A 3 "LATTICE_VECTORS" temp.file | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i}}' |xargs)
-
     if [[ $viri_logi -eq 1 ]]; then
         viri=$(grep -A 3 "VIRIAL (kbar)" temp.file | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i * '$conversion_value'}}' |xargs)
         echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Energy=$ener Virial=\"$viri\" pbc=\"T T T\" Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
     else
-        echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Properties=species:S:1:pos:R:3:forces:R:3 pbc=\"T T T\"" >> "$writ_dire/$writ_file"
+        echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Energy=$ener Properties=species:S:1:pos:R:3:forces:R:3 pbc=\"T T T\"" >> "$writ_dire/$writ_file"
     fi
-
     grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{print $2}' >$writ_dire/symb.tem
-    grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{for (i=3; i<=8; i++) printf "%.6f ", $i; printf "\n"}' > $writ_dire/posi_force.tem
+    grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{for (i=3; i<=8; i++) printf "%.8f ", $i; printf "\n"}' > $writ_dire/posi_force.tem
     paste $writ_dire/symb.tem $writ_dire/posi_force.tem >> $writ_dire/$writ_file
+    #grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{print $2,$3,$4,$5,$6,$7,$8}' >$writ_dire/$writ_file
     rm -f $writ_dire/*.tem
-
-    echo -ne "Process: ${i}/${total_frames}\r"
+    echo -ne "Process: ${i}/${N_counts}\r"
     
 done
 rm -f temp.file
 
-
+echo
 dos2unix "$writ_dire/$writ_file"
 echo "All done."
