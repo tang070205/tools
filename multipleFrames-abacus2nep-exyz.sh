@@ -30,7 +30,7 @@ else
     mdstep_lines=($(grep -n 'MDSTEP' MD_dump | awk -F: '{print $1+9+'$syst_numb_atom'}'))
 fi
 conversion_value=$(grep "Volume (A^3)" running_md.log |awk '{print $4/1602.1766208}')
-
+total_frames=${#emdstep_lines[@]}-1
 
 for ((i=0; i<${#mdstep_lines[@]}-1; i++)); do
     start_line=${mdstep_lines[i]}
@@ -52,6 +52,9 @@ for ((i=0; i<${#mdstep_lines[@]}-1; i++)); do
     grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{for (i=3; i<=8; i++) printf "%.6f ", $i; printf "\n"}' > $writ_dire/posi_force.tem
     paste $writ_dire/symb.tem $writ_dire/posi_force.tem >> $writ_dire/$writ_file
     rm -f $writ_dire/*.tem
+
+    progress=$(( (i + 1) * 100 / total_frames ))
+    echo -ne "Progress: ${progress}%\r"
 done
 rm -f temp.file
 
