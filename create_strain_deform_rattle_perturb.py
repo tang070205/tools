@@ -140,6 +140,7 @@ def convert_xyz_to_poscar():
                  lines[:ntype+1] = upf_orb
                  with open("STRU", 'w') as file:
                      file.writelines(lines)
+         else: 
              None
 convert_xyz_to_poscar()
 os.chdir(original_cwd)
