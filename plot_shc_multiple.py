@@ -45,7 +45,8 @@ lambda_i = (shc_kw/Gc)[mask]
 length = np.logspace(1,6,100)
 k_L = np.zeros_like(length)
 for i, el in enumerate(length):
-    k_L[i] = np.trapz(mask_kw/(1+lambda_i/el), mask_nu)
+    k_L[i] = np.trapz(mask_kw/(1+lambda_i/el), mask_nu) #numpy<2
+    #k_L[i] = np.trapezoid(mask_kw/(1+lambda_i/el), mask_nu)  #numpy>=2
 
 figure(figsize=(12,10))
 subplot(2,2,1)
