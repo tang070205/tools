@@ -26,16 +26,19 @@ if 'energy' in sys.argv[3]:
 elif 'force' in sys.argv[3]:
     dir_value = fout[:,3:6]
     dif_value = fout[:,3:6]-fout[:,0:3]
-    rmse = np.sqrt((fout[:,3:6]-fout[:,0:3])**2)
-    print(rmse)
+    rmse = []
+    for i in range(len(atom_counts) - 1):
+        strucs_forces = fout[atom_counts[i]:atom_counts[i + 1], :]
+        strucs_rmse = np.sqrt(np.mean((strucs_forces[:,3:6]-strucs_forces[:,0:3])**2))
+        rmse.append(strucs_rmse)
 elif 'virial' in sys.argv[3]:
     dir_value = fout[:,6:12]
     dif_value = fout[:,6:12]-fout[:,0:6]
-    rmse = np.sqrt((fout[:, 0:6] - fout[:, 6:12])**2)
+    rmse = np.sqrt(np.sum((fout[:, 0:6] - fout[:, 6:12])**2, axis=1))
 elif 'stress' in sys.argv[3]:
     dir_value = fout[:,6:12]
     dif_value = fout[:,6:12]-fout[:,0:6]
-    rmse = np.sqrt((fout[:, 0:6] - fout[:, 6:12])**2)
+    rmse = np.sqrt(np.sum((fout[:, 0:6] - fout[:, 6:12])**2, axis=1))
 
 def force_struc_ids(di_ids, atom_counts):
     struc_ids = []
@@ -69,15 +72,8 @@ elif sys.argv[1] == 'differ':
 
 elif sys.argv[1] == 'rmse':
     max_rmse_strucs = int(sys.argv[4])
-    if rmse.shape[1] > 1:
-        max_rmse = sorted([(max(row), index) for index, row in enumerate(rmse)])[::-1]
-    else:
-        max_rmse = sorted([(row, index) for index, row in enumerate(rmse)])[::-1]
-    rmse_id = [index for _, index in max_rmse]
-    if 'force' in sys.argv[3]:
-        struc_id = sorted(set(np.unique(force_struc_ids(rmse_id, atom_counts)[:max_rmse_strucs])))
-    else:
-        struc_id = sorted(set(rmse_id[:max_rmse_strucs]))
+    rmse_id =np.argsort(np.array(rmse))
+    struc_id = sorted(set(rmse_id[-max_rmse_strucs:]))
         
 write('deviate.xyz', [strucs[i] for i in struc_id], format='extxyz', write_results=False)
 retain_id = [i for i in range(len(strucs)) if i not in struc_id]
