@@ -3,7 +3,7 @@ import numpy as np
 from ase.io import read, write
 
 def main():
-    if len(sys.argv) < 6:
+    if len(sys.argv) < 5:
         print("Usage: differ差值使用DFT-NEP")
         print("Usage: 目前有一个缺点,训练时如果不是fullbatch,需要将所有结构先预测一下,用那个out文件才能对的上xyz的结构顺序")
         print("Usage: python get_energy_points.py direct <*.xyz> <*.out> x1_start x1_end x2_start x2_end...")
@@ -22,19 +22,20 @@ fout = np.loadtxt(sys.argv[3])
 if 'energy' in sys.argv[3]:
     dir_value = fout[:,1]
     dif_value = fout[:,1]-fout[:,0]
-    rmse = np.sqrt((energy_train[:,0]-energy_train[:,1])**2)
+    rmse = np.sqrt((fout[:,0]-fout[:,1])**2)
 elif 'force' in sys.argv[3]:
     dir_value = fout[:,3:6]
     dif_value = fout[:,3:6]-fout[:,0:3]
-    rmse = np.sqrt(np.mean((force_train[:,3:6]-force_train[:,0:3])**2))
+    rmse = np.sqrt((fout[:,3:6]-fout[:,0:3])**2)
+    print(rmse)
 elif 'virial' in sys.argv[3]:
     dir_value = fout[:,6:12]
     dif_value = fout[:,6:12]-fout[:,0:6]
-    rmse = np.sqrt((virial_train[:, 0:6] - virial_train[:, 6:12])**2)
+    rmse = np.sqrt((fout[:, 0:6] - fout[:, 6:12])**2)
 elif 'stress' in sys.argv[3]:
     dir_value = fout[:,6:12]
     dif_value = fout[:,6:12]-fout[:,0:6]
-    rmse = np.sqrt((stress_train[:, 0:6] - stress_train[:, 6:12])**2)
+    rmse = np.sqrt((fout[:, 0:6] - fout[:, 6:12])**2)
 
 def force_struc_ids(di_ids, atom_counts):
     struc_ids = []
@@ -68,13 +69,16 @@ elif sys.argv[1] == 'differ':
 
 elif sys.argv[1] == 'rmse':
     max_rmse_strucs = int(sys.argv[4])
-    max_values, max_indices = np.max(rmse, axis=1), np.argmax(rmse, axis=1)
-    sorted_indices = np.argsort(-max_values)
-    if 'force' in sys.argv[3]:
-        struc_id = sorted(set(np.unique(force_struc_ids(sorted_indices, atom_counts)[:max_rmse_strucs])))
+    if rmse.shape[1] > 1:
+        max_rmse = sorted([(max(row), index) for index, row in enumerate(rmse)])[::-1]
     else:
-        struc_id = sorted(set(sorted_indices[:max_rmse_strucs]))
-
+        max_rmse = sorted([(row, index) for index, row in enumerate(rmse)])[::-1]
+    rmse_id = [index for _, index in max_rmse]
+    if 'force' in sys.argv[3]:
+        struc_id = sorted(set(np.unique(force_struc_ids(rmse_id, atom_counts)[:max_rmse_strucs])))
+    else:
+        struc_id = sorted(set(rmse_id[:max_rmse_strucs]))
+        
 write('deviate.xyz', [strucs[i] for i in struc_id], format='extxyz', write_results=False)
 retain_id = [i for i in range(len(strucs)) if i not in struc_id]
 write('reserve.xyz', [strucs[i] for i in retain_id], format='extxyz', write_results=False)
