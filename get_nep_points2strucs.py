@@ -21,15 +21,19 @@ fout = np.loadtxt(sys.argv[2])
 if 'energy' in sys.argv[2]:
     dir_value = fout[:,1]
     dif_value = fout[:,1]-fout[:,0]
+    rmse = np.sqrt((energy_train[:,0]-energy_train[:,1])**2)
 elif 'force' in sys.argv[2]:
     dir_value = fout[:,3:6]
     dif_value = fout[:,3:6]-fout[:,0:3]
+    rmse = np.sqrt(np.mean((force_train[:,3:6]-force_train[:,0:3])**2))
 elif 'virial' in sys.argv[2]:
     dir_value = fout[:,6:12]
     dif_value = fout[:,6:12]-fout[:,0:6]
+    rmse = np.sqrt((virial_train[:, 0:6] - virial_train[:, 6:12])**2)
 elif 'stress' in sys.argv[2]:
     dir_value = fout[:,6:12]
     dif_value = fout[:,6:12]-fout[:,0:6]
+    rmse = np.sqrt((stress_train[:, 0:6] - stress_train[:, 6:12])**2)
 
 def generate_struc_ids(di_ids, atom_counts):
     struc_ids = []
@@ -60,6 +64,15 @@ elif sys.argv[1] == 'differ':
         struc_id = sorted(set(generate_struc_ids(differ_id, atom_counts)))
     else:
         struc_id = sorted(set(differ_id))
+
+elif sys.argv[1] == 'rmse':
+    max_rmse_strucs = int(sys.argv[4])
+    max_values, max_indices = np.max(virial_rmse, axis=1), np.argmax(virial_rmse, axis=1)
+    sorted_indices = np.argsort(-max_values)
+    rmse_id = sorted_indices[:max_rmse_strucs]
+    struc_id = sorted(set(rmse_id))
+
+
 
 write('deviate.xyz', [strucs[i] for i in struc_id], format='extxyz', write_results=False)
 retain_id = [i for i in range(len(strucs)) if i not in struc_id]
