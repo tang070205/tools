@@ -15,12 +15,13 @@ with open('basis.in', 'w') as f:
         for i in range(len(uc)):
             f.write(f"{i}\n")
 
+npoints = 400
 special_points = {'G': [0, 0, 0], 'M': [0.5, 0, 0], 'K': [0.3333, 0.3333, 0], 'G': [0, 0, 0]}
-path = uc.cell.bandpath(path='GMKG', npoints = 400, special_points=special_points) 
+path = uc.cell.bandpath(path='GMKG', npoints = npoints, special_points=special_points) 
 kpath, sym_points, labels = path.get_linear_kpoint_axis()
 gpumd_kpts = np.matmul(path.kpts, uc.cell.reciprocal() * 2 * np.pi)
 gpumd_kpts[np.abs(gpumd_kpts) < 1e-15] = 0.0
-np.savetxt('kpoints.in', gpumd_kpts, header=str(400), comments='', fmt='%g') #这里的400要和npoints等于的数一致
+np.savetxt('kpoints.in', gpumd_kpts, header=str(npoints), comments='', fmt='%g')
 
 data = np.loadtxt("omega2.out")
 
@@ -61,5 +62,3 @@ ylabel(r'$\nu$ (THz)',fontsize=15)
 legend(['DFT', 'NEP']) #只画gpumd就只用NEP图例即可，或者不加图例
 savefig('phonon.png', dpi=150, bbox_inches='tight')
 
-
-            
