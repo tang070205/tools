@@ -74,7 +74,7 @@ elif sys.argv[1] == 'rmse':
     max_rmse_strucs = int(sys.argv[4])
     rmse_id =np.argsort(np.array(rmse))
     struc_id = sorted(set(rmse_id[-max_rmse_strucs:]))
-        
+
 write('deviate.xyz', [strucs[i] for i in struc_id], format='extxyz', write_results=False)
 retain_id = [i for i in range(len(strucs)) if i not in struc_id]
 write('reserve.xyz', [strucs[i] for i in retain_id], format='extxyz', write_results=False)
