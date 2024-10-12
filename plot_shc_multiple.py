@@ -17,7 +17,7 @@ with open('run.in', 'r') as file:
             num_corr_points = int(line.split()[2])
             max_corr_t = int(line.split()[1])*int(line.split()[2])/1000
             num_omega = int(line.split()[4])
-            dic = 'x' if int(line.split()[3]) ==0 else 'y' if int(line.split()[3]) ==1 else 'z'
+            dic = 'x' if int(line.split()[3]) ==0 else 'y' if int(line.split()[3]) ==0 else 'z'
         elif 'nvt' in line:
             T = int(line.split()[2])
         elif 'compute_hnemd' in line:
@@ -27,7 +27,7 @@ shc_unanalyzed = np.loadtxt('shc.out')
 shc = np.mean(np.split(shc_unanalyzed, int(sys.argv[1])), axis=0)
 
 l = read('model.xyz').cell.lengths()
-Lx, Ly, Lz = l[0], 3*1.42*10, l[2]
+Lx, Ly, Lz = l[0], l[1], l[2]
 V = Lx * Ly * Lz
 Vvcf = shc[:2 * num_corr_points - 1, :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]
