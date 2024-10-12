@@ -17,7 +17,7 @@ with open('run.in', 'r') as file:
             num_corr_points = int(line.split()[2])
             max_corr_t = int(line.split()[1])*int(line.split()[2])/1000
             num_omega = int(line.split()[4])
-            dic = 'x' if int(line.split()[3]) ==0 else 'y' if int(line.split()[3]) ==0 else 'z'
+            dic = 'x' if int(line.split()[3]) !=0 else 'y' if int(line.split()[3]) !=0 else 'z'
         elif 'nvt' in line:
             T = int(line.split()[2])
         elif 'compute_hnemd' in line:
