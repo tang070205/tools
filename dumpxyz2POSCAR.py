@@ -5,13 +5,21 @@ import shutil
 import subprocess
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python3 aimd_OUTCAR_xyz2POSCAR.py <number_of_perturbations>")
+    if len(sys.argv) != 3:
+        print("Usage: python3 aimd_OUTCAR_xyz2POSCAR.py vasp/abacus <number_of_perturbations>")
         sys.exit(1)
 if __name__ == "__main__":
     main()
 
-number_structures = int(sys.argv[1])
+if sys.argv[1] == 'abacus':
+    subprocess.run(f"echo '1\n 101\n  175 POSCAR' | atomkit", shell=True)
+    ntype = dpdata.System('POSCAR', fmt="vasp/poscar").get_ntypes()
+    with open("POSCAR.STRU", 'r') as file:
+         upf_orb = ''.join([next(file) for _ in range(2 * ntype + 3)])
+else:
+    None
+
+number_structures = int(sys.argv[2])
 original_cwd = os.getcwd()
 
 with open("dump.xyz", "r") as input_file:
@@ -61,6 +69,17 @@ def convert_xyz_to_poscar():
         os.chdir(folder_path)
         xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
         write("POSCAR", read(xyz_file, format="extxyz"))
+        if sys.argv[1] == 'abacus':
+            import dpdata
+            d_poscar = dpdata.System('POSCAR', fmt="vasp/poscar")
+            d_poscar.to("abacus/stru", "STRU")
+            with open("STRU", 'r') as file:
+                lines = file.readlines()
+                lines[:ntype+1] = upf_orb
+                with open("STRU", 'w') as file:
+                    file.writelines(lines)
+        else: 
+            None
 
 create_train_folders()
 split_xyz()
@@ -70,9 +89,15 @@ os.chdir(original_cwd)
 for j in range(number_structures):
     folder_name = f'activate-learning-{j+1}' 
     folder_path = os.path.join('train_folders', folder_name)  
-    shutil.copyfile('INCAR-single', os.path.join(folder_path, 'INCAR'))  #INCAR-single是计算单点能的INCAR
-    os.chdir(folder_path) 
-    vaspkit_command = "vaspkit -task 102 -kpr 0.03"  # 此处采用vaspkit生成KPOINTS和POTCAR，
-    subprocess.run(vaspkit_command, shell=True)  
+    if sys.argv[1] == 'abacus':
+        shutil.copy("INPUT-scf", os.path.join(folder_path, 'INPUT'))
+        os.chdir(folder_path)
+        atomkit_command = 'echo "3\n 301\n 0\n 101 STRU\n 0.03" | atomkit'
+        subprocess.run(atomkit_command, shell=True)
+    else: 
+        shutil.copy("INCAR-scf", os.path.join(folder_path, 'INCAR'))
+        os.chdir(folder_path)
+        vaspkit_command = "vaspkit -task 102 -kpr 0.03" 
+        subprocess.run(vaspkit_command, shell=True) 
     os.chdir(original_cwd)
 
