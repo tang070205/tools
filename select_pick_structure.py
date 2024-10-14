@@ -1,12 +1,12 @@
 import sys
 import numpy as np
 from ase.io import read, write
-import matplotlib.pyplot as plt
+from pylab import *
 from calorine.nep import get_descriptors
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import cdist
 
-strucs = read("structures.xyz", ":")
+strucs = read("train.xyz", ":")
 nep_name = "nep.txt"
 
 def main():
@@ -42,18 +42,19 @@ def pick_points(proj, range_x, range_y):
             pick_strucs.append(i)
     return pick_strucs
 
-
 des = np.array([np.mean(get_descriptors(i, model_filename=nep_name), axis=0) for i in strucs])
 reducer = PCA(n_components=2)
 reducer.fit(des)
 proj = reducer.transform(des)
-
+centroid = np.mean(proj, axis=0)
 
 if sys.argv[1] == "all":
-    plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0")
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    plt.savefig("all-points.png", dpi=150, bbox_inches='tight')
+    scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff")
+    for point in proj:
+        plot([centroid[0], point[0]], [centroid[1], point[1]], '-', alpha=0.3, c="#8e9cff")
+    xlabel('PC1')
+    ylabel('PC2')
+    savefig("all-points.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "select":
     min_distances = [float(arg) for arg in sys.argv[2:]]
@@ -62,13 +63,18 @@ elif sys.argv[1] == "select":
         write(f"selected_{min_distance}.xyz", [strucs[i] for i in selected_strucs], format='extxyz', write_results=False)
         abandoned_strucs = [i for i in range(len(strucs)) if i not in selected_strucs]
         write(f"abandoned_{min_distance}.xyz", [strucs[i] for i in abandoned_strucs], format='extxyz', write_results=False)
-        plt.scatter(proj[:, 0], proj[:, 1], alpha=0.5, c="C0", label="All")
+        scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff", label="All")
         selected_proj = reducer.transform(np.array([des[i] for i in selected_strucs]))
-        plt.scatter(selected_proj[:, 0], selected_proj[:, 1], s=8, color='C1', label="Selected at {}".format(min_distance))
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-        plt.legend()
-        plt.savefig(f"select_{min_distance}.png", dpi=150, bbox_inches='tight')
+        selected_centroid = np.mean(selected_proj, axis=0)
+        scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="Selected at {}".format(min_distance))
+        for point in proj:
+            plot([centroid[0], point[0]], [centroid[1], point[1]], '-', alpha=0.3, c="#8e9cff")
+        for selected_point in selected_proj:
+            plot([selected_centroid[0], selected_point[0]], [selected_centroid[1], selected_point[1]], '-', alpha=0.4, c="#e26fff")
+        xlabel('PC1')
+        ylabel('PC2')
+        legend()
+        savefig(f"select_{min_distance}.png", dpi=150, bbox_inches='tight')
 
 if sys.argv[1] == "pick":
     picked_proj = set()
@@ -82,8 +88,8 @@ if sys.argv[1] == "pick":
     write("picked.xyz", [strucs[i] for i in picked_proj], format='extxyz', write_results=False)
     retained_proj = [i for i in range(len(strucs)) if i not in picked_proj]
     write('retained.xyz', [strucs[i] for i in retained_proj], format='extxyz', write_results=False)
-    plt.scatter(proj[picked_proj, 0], proj[picked_proj, 1], alpha=0.5, color='C1', label="Picked")
-    plt.scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retained")
-    plt.legend()
-    plt.savefig("retain-pick.png", dpi=150, bbox_inches='tight')
-
+    scatter(proj[picked_proj, 0], proj[picked_proj, 1], alpha=0.5, color='C1', label="Picked")
+    scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retained")
+    legend()
+    savefig("retain-pick.png", dpi=150, bbox_inches='tight')
+    
