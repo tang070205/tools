@@ -66,7 +66,7 @@ elif sys.argv[1] == "select":
         scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff", label="All")
         selected_proj = reducer.transform(np.array([des[i] for i in selected_strucs]))
         selected_centroid = np.mean(selected_proj, axis=0)
-        scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="Selected at {}".format(min_distance))
+        scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="min_distance={}".format(min_distance))
         for point in proj:
             plot([centroid[0], point[0]], [centroid[1], point[1]], '-', alpha=0.3, c="#8e9cff")
         for selected_point in selected_proj:
