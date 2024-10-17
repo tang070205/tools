@@ -3,8 +3,10 @@ import subprocess
 import numpy as np
 from pylab import *
 from ase.io import read,write
-from scipy.integrate import cumtrapz #scipy<=1.13
-#from scipy.integrate import cumulative_trapezoid #scipy>=1.14
+from scipy import integrate
+import importlib.metadata
+scipy_version = importlib.metadata.version('scipy')
+numpy_version = importlib.metadata.version('numpy')
 
 uc = read('POSCAR')
 struc = uc*(10,10,10)
@@ -38,63 +40,65 @@ t = np.arange(1, len(kappa) + 1) * 0.001
 xlimit = int(run_time / 1000000)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
-    return cumtrapz(y, x, initial=0) / x  #scipy<=1.13
-    #return cumulative_trapezoid(y, x, initial=0) / x #scipy>=1.14
-kappa_kxi_ra = running_ave(kappa[:,0],t)
-kappa_kxo_ra = running_ave(kappa[:,1],t)
-kappa_kyi_ra = running_ave(kappa[:,2],t)
-kappa_kyo_ra = running_ave(kappa[:,3],t)
-kappa_kz_ra = running_ave(kappa[:,4],t)
+    if scipy_version <= '1.13.1':
+        return cumtrapz(y, x, initial=0) / x
+    else:
+        return cumulative_trapezoid(y, x, initial=0) / x 
 
-figure(figsize=(12,10))
-subplot(2,2,1)
-plot(t, kappa[:,2],color='C7',alpha=0.5)
-plot(t, kappa_kyi_ra, linewidth=2)
-xlim([0, xlimit])
-gca().set_xticks(linspace(0,xlimit,3))
-ylim([0, 1000])
-gca().set_yticks(linspace(0,1000,6))
-xlabel('time (ns)')
-ylabel(r'$\kappa_{in}$ W/m/K')
-title('(a)')
+if dic == 'x':
+    ki_ra = running_ave(kappa[:,0],t)
+    ko_ra = running_ave(kappa[:,1],t)
+elif dic == 'y':
+    ki_ra = running_ave(kappa[:,2],t)
+    ko_ra = running_ave(kappa[:,3],t)
+else:
+    kz_ra = running_ave(kappa[:,4],t)
 
-subplot(2,2,2)
-plot(t, kappa[:,3],color='C7',alpha=0.5)
-plot(t, kappa_kyo_ra, linewidth=2, color='C3')
-xlim([0, xlimit])
-gca().set_xticks(linspace(0,xlimit,3))
-ylim([0, 1000])
-gca().set_yticks(linspace(0,1000,6))
-xlabel('time (ns)')
-ylabel(r'$\kappa_{out}$ (W/m/K)')
-title('(b)')
+if dic == 'x' or dic == 'y':
+    figure(figsize=(12,4))
+    subplot(1,3,1)
+    plot(t, kappa[:,2],color='C7',alpha=0.5)
+    plot(t, ki_ra, linewidth=2)
+    xlim([0, xlimit])
+    gca().set_xticks(linspace(0,xlimit,3))
+    ylim([0, 1000])
+    gca().set_yticks(linspace(0,1000,6))
+    xlabel('time (ns)')
+    ylabel(r'$\kappa_{in}$ W/m/K')
+    title('(a)')
 
-subplot(2,2,3)
-plot(t, kappa_kyi_ra, linewidth=2)
-plot(t, kappa_kyo_ra, linewidth=2, color='C3')
-plot(t, kappa_kyi_ra + kappa_kyo_ra, linewidth=2, color='k')
-xlim([0, xlimit])
-gca().set_xticks(linspace(0,xlimit,3))
-ylim([0, 1000])
-gca().set_yticks(linspace(0,1000,6))
-xlabel('time (ns)')
-ylabel(r'$\kappa$ (W/m/K)')
-legend(['in', 'out', 'total'])
-title('(c)')
+    subplot(1,3,2)
+    plot(t, kappa[:,3],color='C7',alpha=0.5)
+    plot(t, ko_ra, linewidth=2, color='C3')
+    xlim([0, xlimit])
+    gca().set_xticks(linspace(0,xlimit,3))
+    ylim([0, 1000])
+    gca().set_yticks(linspace(0,1000,6))
+    xlabel('time (ns)')
+    ylabel(r'$\kappa_{out}$ (W/m/K)')
+    title('(b)')
 
-
-subplot(2,2,4)
-plot(t, kappa_kyi_ra + kappa_kyo_ra,color='k', linewidth=2)
-plot(t, kappa_kxi_ra + kappa_kxo_ra, color='C0', linewidth=2)
-plot(t, kappa_kz_ra, color='C3', linewidth=2)
-xlim([0, xlimit])
-gca().set_xticks(linspace(0,xlimit,3))
-ylim([0, 1000])
-gca().set_yticks(linspace(0,1000,6))
-xlabel('time (ns)')
-ylabel(r'$\kappa$ (W/m/K)')
-legend(['yy', 'xy', 'zy'])
-title('(d)')
+    subplot(1,3,3)
+    plot(t, ki_ra, linewidth=2)
+    plot(t, ko_ra, linewidth=2, color='C3')
+    plot(t, ki_ra + ko_ra, linewidth=2, color='k')
+    xlim([0, xlimit])
+    gca().set_xticks(linspace(0,xlimit,3))
+    ylim([0, 1000])
+    gca().set_yticks(linspace(0,1000,6))
+    xlabel('time (ns)')
+    ylabel(r'$\kappa$ (W/m/K)')
+    legend(['in', 'out', 'total'])
+    title('(c)')
+else:
+    figure(figsize=(5,5))
+    plot(t, kz_ra, color='C3', linewidth=2)
+    xlim([0, xlimit])
+    gca().set_xticks(linspace(0,xlimit,3))
+    ylim([0, 1000])
+    gca().set_yticks(linspace(0,1000,6))
+    xlabel('time (ns)')
+    ylabel(r'$\kappa$ (W/m/K)')
 
 savefig('hnemd.png', dpi=150, bbox_inches='tight')
 
@@ -115,8 +119,10 @@ lambda_i = (shc_kw/Gc)
 length = np.logspace(1,6,100)
 k_L = np.zeros_like(length)
 for i, el in enumerate(length):
-    k_L[i] = np.trapz(shc_kw/(1+lambda_i/el), shc_nu)  #numpy<2
-    #k_L[i] = np.trapezoid(shc_kw/(1+lambda_i/el), shc_nu)  #numpy>=2
+    if numpy_version_version <= '1.26.4':
+        k_L[i] = np.trapz(shc_kw/(1+lambda_i/el), shc_nu)
+    else:
+        k_L[i] = np.trapezoid(shc_kw/(1+lambda_i/el), shc_nu)
 
 figure(figsize=(12,10))
 subplot(2,2,1)
