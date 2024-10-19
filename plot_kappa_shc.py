@@ -5,8 +5,6 @@ from pylab import *
 from ase.io import read,write
 from scipy import integrate
 import importlib.metadata
-scipy_version = importlib.metadata.version('scipy')
-numpy_version = importlib.metadata.version('numpy')
 
 uc = read('POSCAR')
 struc = uc*(10,10,10)
@@ -40,6 +38,7 @@ t = np.arange(1, len(kappa) + 1) * 0.001
 xlimit = int(run_time / 1000000)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
+    scipy_version = importlib.metadata.version('scipy')
     if scipy_version <= '1.13.1':
         return cumtrapz(y, x, initial=0) / x
     else:
@@ -118,6 +117,7 @@ Gc = np.load('Gc.npy')
 lambda_i = (shc_kw/Gc)
 length = np.logspace(1,6,100)
 k_L = np.zeros_like(length)
+numpy_version = importlib.metadata.version('numpy')
 for i, el in enumerate(length):
     if numpy_version_version <= '1.26.4':
         k_L[i] = np.trapz(shc_kw/(1+lambda_i/el), shc_nu)
