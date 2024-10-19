@@ -34,6 +34,10 @@ for line in open('xmllist'):
             b[ind].pbc=True
             b[ind].info['config_type']=label
             write("aimd.xyz",b[ind],append=True)
+        else:
+            b[ind].pbc=True
+            b[ind].info['config_type']=label
+            write("dump.xyz",b[ind],append=True)
     os.system("rm screen_tmp")
 os.system("rm xmllist")
 
@@ -105,5 +109,4 @@ for j in range(number_structures):
     vaspkit_command = "vaspkit -task 102 -kpr 0.03"  # 此处采用vaspkit生成KPOINTS和POTCAR，
     subprocess.run(vaspkit_command, shell=True)  
     os.chdir(original_cwd)
-
 
