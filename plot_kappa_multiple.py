@@ -2,8 +2,9 @@ import sys
 import numpy as np
 from pylab import *
 import matplotlib.pyplot as plt
-from scipy.integrate import cumtrapz #scipy<=1.13
-#from scipy.integrate import cumulative_trapezoid #scipy>=1.14
+from scipy import integrate
+import importlib.metadata
+scipy_version = importlib.metadata.version('scipy')
 
 def main():
     if len(sys.argv) != 2:
@@ -29,8 +30,10 @@ t = np.arange(1, one_lines + 1) * 0.001 * time_step
 xlimit = int(run_time / 1000000 * time_step)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
-    return cumtrapz(y, x, initial=0) / x  #scipy<=1.13
-    #return cumulative_trapezoid(y, x, initial=0) / x #scipy>=1.14
+    if scipy_version <= '1.13.1':
+        return cumtrapz(y, x, initial=0) / x
+    else:
+        return cumulative_trapezoid(y, x, initial=0) / x 
 
 if dic == 'x' or dic == 'y':
     plt.figure(figsize=(13, 4))
