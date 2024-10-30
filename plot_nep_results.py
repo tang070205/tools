@@ -68,7 +68,7 @@ def force_code():
         legend([f'train RMSE= {1000*rmse_f_train:.3f} meV/atom R²= {r2_f_train:.3f}', 
                f'test RMSE= {1000*rmse_f_test:.3f} meV/atom R²= {r2_f_test:.3f}'], frameon=False, fontsize=9)
     else:
-        legend([f'train RMSE= {1000*rmse_f_train:.3f} meV/atom R²= {r2_f_train:.3f}'], frameon=False, fontsize=19)
+        legend([f'train RMSE= {1000*rmse_f_train:.3f} meV/atom R²= {r2_f_train:.3f}'], frameon=False, fontsize=9)
     plot(linspace(force_min, force_max), linspace(force_min, force_max), '-')
     xlabel('DFT force (eV/A)')
     ylabel('NEP force (eV/A)')
