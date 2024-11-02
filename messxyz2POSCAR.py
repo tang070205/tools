@@ -1,8 +1,5 @@
 from ase.io import read, write
-import sys
-import os
-import shutil
-import subprocess
+import os, sys, shutil, subprocess
 
 def main():
     if len(sys.argv) != 2:
