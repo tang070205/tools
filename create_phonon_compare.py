@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from pylab import *
 from ase.io import read,write
