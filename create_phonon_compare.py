@@ -3,8 +3,12 @@ import numpy as np
 from pylab import *
 from ase.io import read,write
 
+cx,cy,cz = 20, 20, 1   # 超胞参数
+npoints = 400          # vaspkit305的npoints点数
+special_points = {'G': [0, 0, 0], 'M': [0.5, 0, 0], 'K': [0.3333, 0.3333, 0], 'G': [0, 0, 0]}  # 高对称点坐标，同样vaspkit305提供的文件里有
+points_path = 'GMKG'          # 点路径，最后还要设置横坐标的标签gca().set_xticklabels([])
+
 uc = read('POSCAR-unitcell') #xyz、cif文件也可以
-cx,cy,cz = 20, 20, 1
 struc = uc * (cx,cy,cz)
 write("model.xyz", struc)
 
@@ -16,9 +20,7 @@ with open('basis.in', 'w') as f:
         for i in range(len(uc)):
             f.write(f"{i}\n")
 
-npoints = 400
-special_points = {'G': [0, 0, 0], 'M': [0.5, 0, 0], 'K': [0.3333, 0.3333, 0], 'G': [0, 0, 0]}
-path = uc.cell.bandpath(path='GMKG', npoints = npoints, special_points=special_points) 
+path = uc.cell.bandpath(path=points_path, npoints = npoints, special_points=special_points) 
 kpath, sym_points, labels = path.get_linear_kpoint_axis()
 gpumd_kpts = np.matmul(path.kpts, uc.cell.reciprocal() * 2 * np.pi)
 gpumd_kpts[np.abs(gpumd_kpts) < 1e-15] = 0.0
@@ -32,7 +34,7 @@ for i in range(len(data)):
 nu = data
 
 """ #qe加这段,vasp不用
-data = np.loadtxt("C.freq.gp")
+data = np.loadtxt("*.freq.gp")
 x = data[:, 0]
 y_columns = data[:, 1:]
 new_data = []
