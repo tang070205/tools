@@ -1,9 +1,6 @@
 from ase.io import read, write
 import numpy as np
-import sys
-import os
-import shutil
-import subprocess
+import os, sys, shutil, subprocess
 
 #这部分使用了叠加态大佬的代码，往网址：https://zhuanlan.zhihu.com/p/397866915
 label='aimd'
