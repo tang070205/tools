@@ -1,8 +1,7 @@
-import sys
-import subprocess
+import sys, subprocess
 import numpy as np
 from pylab import *
-from ase.io import read,write
+from ase.io import read, write
 
 uc = read('POSCAR') 
 cx, cy, cz = 52, 30, 1
