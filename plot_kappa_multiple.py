@@ -1,14 +1,13 @@
-import sys
+import sys, subprocess
 import numpy as np
 from pylab import *
 import matplotlib.pyplot as plt
-from scipy import integrate
 import importlib.metadata
 scipy_version = importlib.metadata.version('scipy')
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python sdf.py <number-of-runs>")
+        print("Usage: python plot_kappa_multiple.py <number-of-runs>")
         sys.exit(1)
 if __name__ == "__main__":
     main()
@@ -22,7 +21,9 @@ with open('run.in', 'r') as file:
             hnemd_sample = int(line.split()[1])
             dic = 'x' if float(line.split()[2]) > 0 else 'y' if float(line.split()[3]) > 0 else 'z'
 print('驱动力方向：', dic)
-run_time = 10000000
+
+run_time_out = subprocess.run("grep -A 10 'compute_hnemd' run.in | grep 'run' | head -n 1 | awk '{print $2}'", shell=True, capture_output=True, text=True)
+run_time = int(run_time_out.stdout.strip())
 one_lines = run_time / hnemd_sample
 kappa = np.loadtxt('kappa.out', max_rows = int(sys.argv[1]) * int(one_lines))
 file_datas = np.split(kappa, int(sys.argv[1]))
@@ -30,9 +31,11 @@ t = np.arange(1, one_lines + 1) * 0.001 * time_step
 xlimit = int(run_time / 1000000 * time_step)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
-    if scipy_version <= '1.13.1':
+    if scipy_version < '1.14':
+        from scipy.integrate import cumtrapz
         return cumtrapz(y, x, initial=0) / x
     else:
+        from scipy.integrate import cumulative_trapezoid
         return cumulative_trapezoid(y, x, initial=0) / x 
 
 if dic == 'x' or dic == 'y':
