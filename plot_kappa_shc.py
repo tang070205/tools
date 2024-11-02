@@ -1,10 +1,9 @@
-import sys
-import subprocess
+import sys, subprocess
 import numpy as np
 from pylab import *
 from ase.io import read,write
-from scipy import integrate
 import importlib.metadata
+scipy_version = importlib.metadata.version('scipy')
 
 uc = read('POSCAR')
 struc = uc*(10,10,10)
@@ -31,17 +30,18 @@ with open('run.in', 'r') as file:
             Fex, Fey,Fez = line.split()[2], line.split()[3], line.split()[4]
 print('驱动力方向：', dic)
 
-run_time_out = subprocess.run("grep 'run' run.in | tail -n 1 | awk '{print $2}'", shell=True, capture_output=True, text=True)
+run_time_out = subprocess.run("grep -A 10 'compute_hnemd' run.in | grep 'run' | head -n 1 | awk '{print $2}'", shell=True, capture_output=True, text=True)
 run_time = int(run_time_out.stdout.strip())
 kappa = np.loadtxt('kappa.out')
 t = np.arange(1, len(kappa) + 1) * 0.001 
 xlimit = int(run_time / 1000000)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
-    scipy_version = importlib.metadata.version('scipy')
-    if scipy_version <= '1.13.1':
+    if scipy_version < '1.14':
+        from scipy.integrate import cumtrapz
         return cumtrapz(y, x, initial=0) / x
     else:
+        from scipy.integrate import cumulative_trapezoid
         return cumulative_trapezoid(y, x, initial=0) / x 
 
 if dic == 'x':
