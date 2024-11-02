@@ -1,8 +1,6 @@
-import os
-import shutil
-import subprocess
+import os, sys, shutil, subprocess
 import dpdata
-import sys
+
 
 def main():
     if len(sys.argv) != 4:
