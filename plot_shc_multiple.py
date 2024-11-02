@@ -6,7 +6,7 @@ import importlib.metadata
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python sdf.py <number-of-runs>")
+        print("Usage: python plot_shc_multiple.py <number-of-runs>")
         sys.exit(1)
 if __name__ == "__main__":
     main()
