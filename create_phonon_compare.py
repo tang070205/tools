@@ -53,9 +53,8 @@ if os.path.exists('phonon.out'):
     data_vasp = np.loadtxt('phonon.out')
     vasp_path = data_vasp[:,0] / max(data_vasp[:,0]) * max(kpath)
     scatter(vasp_path, data_vasp[:,1], marker='.', edgecolors='C1', facecolors='none')
-    legend(['DFT', 'NEP'])
 else:
-    legend(['NEP'])
+    None
 plot(kpath, nu, color='C0', lw=1)
 xlim([0, max(kpath)])
 for sym_point in sym_points[1:-1]:
@@ -65,5 +64,9 @@ gca().set_xticklabels([r'$\Gamma$', 'M', 'K', '$\Gamma$'])
 ylim([0, 6])  
 gca().set_yticks(linspace(0,6,7))
 ylabel(r'$\nu$ (THz)',fontsize=15)
+if os.path.exists('phonon.out'):
+    legend(['DFT', 'NEP'])
+else:
+    legend(['NEP'])
 savefig('phonon.png', dpi=150, bbox_inches='tight')
 
