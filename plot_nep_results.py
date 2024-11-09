@@ -65,13 +65,13 @@ def force_code():
         force_test_two = get_counts2two(force_test)
         plot(force_test_two[:, 1], force_test_two[:, 0], '.', color=color_test)
         rmse_f_test, r2_f_test = calc_r2_rmse(force_test_two)
-        legend([f'train RMSE= {1000*rmse_f_train:.3f} meV/atom R²= {r2_f_train:.3f}', 
-               f'test RMSE= {1000*rmse_f_test:.3f} meV/atom R²= {r2_f_test:.3f}'], frameon=False, fontsize=9)
+        legend([f'train RMSE= {1000*rmse_f_train:.3f} meV/Å R²= {r2_f_train:.3f}', 
+               f'test RMSE= {1000*rmse_f_test:.3f} meV/Å R²= {r2_f_test:.3f}'], frameon=False, fontsize=9)
     else:
-        legend([f'train RMSE= {1000*rmse_f_train:.3f} meV/atom R²= {r2_f_train:.3f}'], frameon=False, fontsize=9)
+        legend([f'train RMSE= {1000*rmse_f_train:.3f} meV/Å R²= {r2_f_train:.3f}'], frameon=False, fontsize=9)
     plot(linspace(force_min, force_max), linspace(force_min, force_max), '-')
-    xlabel('DFT force (eV/A)')
-    ylabel('NEP force (eV/A)')
+    xlabel('DFT force (eV/Å)')
+    ylabel('NEP force (eV/Å)')
     tight_layout()
     pass
 
