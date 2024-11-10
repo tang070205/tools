@@ -10,7 +10,7 @@ struc = uc*(10,10,10)
 l = struc.cell.lengths()
 struc.pbc = [True, True, True]
 struc
-write("model.xyz", sttruc)
+write("model.xyz", struc)
 
 with open('run.in', 'r') as file:
     for line in file:
