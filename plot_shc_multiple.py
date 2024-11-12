@@ -47,7 +47,7 @@ length = np.logspace(1,6,100)
 k_L = np.zeros_like(length)
 numpy_version = importlib.metadata.version('numpy')
 for i, el in enumerate(length):
-    if numpy_version_version <= '1.26.4':
+    if numpy_version < '2':
         k_L[i] = np.trapz(shc_kw/(1+lambda_i/el), shc_nu)
     else:
         k_L[i] = np.trapezoid(shc_kw/(1+lambda_i/el), shc_nu)
