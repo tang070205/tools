@@ -4,18 +4,22 @@ from pylab import *
 from sklearn.metrics import r2_score
 
 three_six_component = 0   # 0不画三六分量，1画三六分量
+diagonal_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
+              'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}  #对角线范围
+use_coord_range = 0   # 0不使用坐标范围，1使用坐标范围
 coord_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
               'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}
 
 def generate_colors(data):
     if three_six_component == 0:
-        return 'deepskyblue', 'orange'
+        return 'deepskyblue', 'orange'   #不画三六分量，前是训练集颜色，后是测试集颜色
     else:
+        #这里的colors可以随便更改，只要训练集和测试集的颜色不一样即可
         colors = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan', 'magenta', 'lime', 'teal', 'navy', 'olive', 'maroon']
         if data in ['force', 'dipole']:
             return colors[:3], colors[3:6]
         elif data == 'energy':
-            return 'deepskyblue', 'orange'
+            return 'deepskyblue', 'orange'   #能量本身就只有两列
         else:
             return colors[:6], colors[6:]
 
@@ -123,17 +127,24 @@ def plot_diagonal(data):
             legend([f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', 
                    f'test RMSE= {1000*rmse_data_test:.3f} {unit} R²= {r2_data_test:.3f}'], frameon=False, fontsize=10)
         else:
-            legend(train_dir+test_dir, frameon=False, fontsize=8, ncol=2, loc='upper left')
-            plt.annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', xy=(0.95, 0.05), xycoords='axes fraction', ha='right', va='bottom')
-            plt.annotate(f'test RMSE= {1000*rmse_data_test:.3f} {unit} R²= {r2_data_test:.3f}', xy=(0.95, 0.10), xycoords='axes fraction', ha='right', va='bottom')
+            legend(train_dir+test_dir, frameon=False, fontsize=9, ncol=2, loc='upper left', bbox_to_anchor=(0, 0.9))
+            annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', xy=(0.09, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'test RMSE= {1000*rmse_data_test:.3f} {unit} R²= {r2_data_test:.3f}', xy=(0.09, 0.92), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     else:
         if three_six_component == 0 or data == 'energy':
             legend([f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}'], frameon=False, fontsize=10)
         else:
-            legend(train_dir, frameon=False, fontsize=8, loc='upper left')
-            plt.annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', xy=(0.95, 0.05), xycoords='axes fraction', ha='right', va='bottom')
-    data_min, data_max = coord_range.get(data, (None, None))
-    plot(linspace(data_min, data_max), linspace(data_min, data_max), '-')
+            legend(train_dir, frameon=False, fontsize=10, loc='upper left', bbox_to_anchor=(0, 0.95))
+            annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', xy=(0.1, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+    
+    diagonal_min, diagonal_max = diagonal_range.get(data, (None, None))
+    coord_min, coord_max = coord_range.get(data, (None, None))
+    plot(linspace(diagonal_min, diagonal_max), linspace(diagonal_min, diagonal_max), linspace(), '-')
+    if use_coord_range == 1:
+        xlim(coord_min, coord_max)
+        ylim(coord_min, coord_max)
+    else:
+        None
     xlabel(f"DFT {data} ({unit})")
     ylabel(f"NEP {data} ({unit})")
     tight_layout()
@@ -141,22 +152,25 @@ def plot_diagonal(data):
 
 if os.path.exists('loss.out'):
     print('NEP训练')
-    with open('nep.in', 'r') as file:
-        for line in file:
-            line = line.strip()
-            if 'labbma_v' in line:
-                lambda_v = float(line.split()[2])
-            else:
-                lambda_v = 0.1
+    if os.path.exists('nep.in'):
+        with open('nep.in', 'r') as file:
+            for line in file:
+                line = line.strip()
+                if 'labbma_v' in line:
+                    lambda_v = float(line.split()[2])
+                else:
+                    lambda_v = 0.1
+    else:
+        lambda_v = 0.1
     if os.path.exists('dipole_train.out'):
-        figure(figsize=(10,5))
+        figure(figsize=(12,5))
         subplot(1,2,1)
         plot_loss()
         subplot(1,2,2)
         plot_diagonal('dipole')
         savefig('nep-dipole.png', dpi=150, bbox_inches='tight')
     elif os.path.exists('polarizability_train.out'):
-        plt.figure(figsize=(10,5))
+        plt.figure(figsize=(12,5))
         subplot(1,2,1)
         plot_loss()
         subplot(1,2,2)
