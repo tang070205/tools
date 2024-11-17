@@ -4,22 +4,20 @@ from pylab import *
 from sklearn.metrics import r2_score
 
 three_six_component = 0   # 0不画三六分量，1画三六分量
-if three_six_component == 0:
-    color_train= 'deepskyblue'
-    color_test= 'orange'
-else:
-    color_train_test= None 
 coord_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
               'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}
 
 def generate_colors(data):
-    colors = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan', 'magenta', 'lime', 'teal', 'navy', 'olive', 'maroon']
-    if data in ['force', 'dipole']:
-        return colors[:3], colors[3:6]
-    elif data == 'energy':
+    if three_six_component == 0:
         return 'deepskyblue', 'orange'
     else:
-        return colors[:6], colors[6:]
+        colors = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan', 'magenta', 'lime', 'teal', 'navy', 'olive', 'maroon']
+        if data in ['force', 'dipole']:
+            return colors[:3], colors[3:6]
+        elif data == 'energy':
+            return 'deepskyblue', 'orange'
+        else:
+            return colors[:6], colors[6:]
 
 files = ['loss.out', 'energy_train.out', 'energy_test.out', 
          'force_train.out', 'force_test.out', 'virial_train.out', 'virial_test.out', 
@@ -43,19 +41,19 @@ def calc_r2_rmse(out_file):
 
 def plot_loss():
     if os.path.exists('dipole_train.out'):
-        loglog(loss[:, 1:4])
+        loglog(loss[:, 1:5])
         if os.path.exists('test.xyz'):
             loglog(loss[:, 5])
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole-train', 'Dipole-test'], ncol=2, frameon=False, fontsize=8, loc='lower left')
+            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole-train', 'Dipole-test'], ncol=2, frameon=False, fontsize=8, loc='upper right')
         else:
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole'], ncol=2, frameon=False, fontsize=8, loc='lower left')
+            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole'], ncol=2, frameon=False, fontsize=8, loc='upper right')
     elif os.path.exists('polarizability_train.out'):
-        loglog(loss[:, 1:4])
+        loglog(loss[:, 1:5])
         if os.path.exists('test.xyz'):
             loglog(loss[:, 5])
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability-train', 'Polarizability-test'], ncol=2, frameon=False, fontsize=8, loc='lower left')
+            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability-train', 'Polarizability-test'], ncol=2, frameon=False, fontsize=8, loc='upper right')
         else:
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability'], ncol=2, frameon=False, fontsize=8, loc='lower left')
+            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability'], ncol=2, frameon=False, fontsize=8, loc='upper right')
     else: 
         loglog(loss[:, 1:7])
         if os.path.exists('test.xyz'):
@@ -70,17 +68,17 @@ def plot_loss():
     pass
 
 def plot_diagonal(data):
-    if color_train_test is None:
-        color_train, color_test = generate_colors(data)
+    color_train, color_test = generate_colors(data)
     def plot_value(values, columns, color):
         if three_six_component == 0:
-            plot(values[:, 1], values[:, 1], '.', color=color)
+            plot(values[:, 1], values[:, 0], '.', color=color)
         else:
             if data == 'energy':
                 plot(values[:, 1], values[:, 0], '.', color=color)
             else:
                 for i in range(columns):
                     plot(values[:, i+columns], values[:, i], '.', color=color[i % len(color)])
+    pass
 
     units = {'force': 'eV/Å', 'stress': 'GPa', 'energy': 'eV/atom','virial': 'eV/atom',
             'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
@@ -151,14 +149,14 @@ if os.path.exists('loss.out'):
             else:
                 lambda_v = 0.1
     if os.path.exists('dipole_train.out'):
-        figure(figsize=(8,4))
+        figure(figsize=(10,5))
         subplot(1,2,1)
         plot_loss()
         subplot(1,2,2)
         plot_diagonal('dipole')
         savefig('nep-dipole.png', dpi=150, bbox_inches='tight')
     elif os.path.exists('polarizability_train.out'):
-        plt.figure(figsize=(8,4))
+        plt.figure(figsize=(10,5))
         subplot(1,2,1)
         plot_loss()
         subplot(1,2,2)
