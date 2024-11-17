@@ -48,16 +48,16 @@ def plot_loss():
         loglog(loss[:, 1:5])
         if os.path.exists('test.xyz'):
             loglog(loss[:, 5])
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole-train', 'Dipole-test'], ncol=2, frameon=False, fontsize=8, loc='upper right')
+            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole-train', 'Dipole-test'], ncol=5, frameon=False, fontsize=8, loc='upper right')
         else:
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole'], ncol=2, frameon=False, fontsize=8, loc='upper right')
+            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole'], ncol=4, frameon=False, fontsize=8, loc='upper right')
     elif os.path.exists('polarizability_train.out'):
         loglog(loss[:, 1:5])
         if os.path.exists('test.xyz'):
             loglog(loss[:, 5])
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability-train', 'Polarizability-test'], ncol=2, frameon=False, fontsize=8, loc='upper right')
+            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability-train', 'Polarizability-test'], ncol=5, frameon=False, fontsize=8, loc='upper right')
         else:
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability'], ncol=2, frameon=False, fontsize=8, loc='upper right')
+            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability'], ncol=4, frameon=False, fontsize=8, loc='upper right')
     else: 
         loglog(loss[:, 1:7])
         if os.path.exists('test.xyz'):
@@ -139,7 +139,7 @@ def plot_diagonal(data):
     
     diagonal_min, diagonal_max = diagonal_range.get(data, (None, None))
     coord_min, coord_max = coord_range.get(data, (None, None))
-    plot(linspace(diagonal_min, diagonal_max), linspace(diagonal_min, diagonal_max), linspace(), '-')
+    plot(linspace(diagonal_min, diagonal_max), linspace(diagonal_min, diagonal_max), '-')
     if use_coord_range == 1:
         xlim(coord_min, coord_max)
         ylim(coord_min, coord_max)
