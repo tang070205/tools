@@ -84,8 +84,8 @@ def plot_diagonal(data):
                     plot(values[:, i+columns], values[:, i], '.', color=color[i % len(color)])
     pass
 
-    units = {'force': 'eV/Å', 'stress': 'GPa', 'energy': 'eV/atom','virial': 'eV/atom',
-            'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
+    units = {'force': 'eV/Å', 'stress': 'GPa', 'energy': 'eV/atom','virial': 'eV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
+    munits = {'force': 'meV/Å', 'stress': 'MPa', 'energy': 'meV/atom','virial': 'meV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
     def generate_dirs(types, prefixes):
         components = {3: ['x', 'y', 'z'], 6: ['xx', 'yy', 'zz', 'xy', 'yz', 'xz']}
         if os.path.exists(f"{data}_test.out"):
@@ -95,7 +95,6 @@ def plot_diagonal(data):
     types = ['force', 'stress', 'virial', 'dipole', 'polarizability']
     prefixes = ['train', 'test']
     train_dirs, test_dirs = generate_dirs(types, prefixes[0::2]), generate_dirs(types, prefixes[1::2])
-    unit = units.get(data, 'unknown unit')
     train_dir = train_dirs.get(data, 'unknown train_dirs')
     test_dir = test_dirs.get(data, 'unknown test_dirs')
 
@@ -123,6 +122,10 @@ def plot_diagonal(data):
         test_columns = int(data_test.shape[1]//2)
         plot_value(data_test, test_columns, color_test)
         rmse_data_test, r2_data_test = calc_r2_rmse(data_test)
+        if rmse_data_test < 1:
+            unit = munits.get(data, 'unknown unit')
+        else:
+            unit = units.get(data, 'unknown unit')
         if three_six_component == 0 or data == 'energy':
             legend([f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', 
                    f'test RMSE= {1000*rmse_data_test:.3f} {unit} R²= {r2_data_test:.3f}'], frameon=False, fontsize=10)
@@ -131,6 +134,10 @@ def plot_diagonal(data):
             annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', xy=(0.09, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
             annotate(f'test RMSE= {1000*rmse_data_test:.3f} {unit} R²= {r2_data_test:.3f}', xy=(0.09, 0.92), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     else:
+        if rmse_data_train < 1:
+            unit = munits.get(data, 'unknown unit')
+        else:
+            unit = units.get(data, 'unknown unit')
         if three_six_component == 0 or data == 'energy':
             legend([f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}'], frameon=False, fontsize=10)
         else:
