@@ -1,13 +1,21 @@
 import sys
 import numpy as np
-from ase.io import read, write
 from pylab import *
 from calorine.nep import get_descriptors
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import cdist
 
-strucs = read("train.xyz", ":")
+xyz_file = "train.xyz"
 nep_name = "nep.txt"
+with open(xyz_file, 'r') as file:
+    struc_atom = []
+    for line in file:
+        atom_line = line.strip()
+        if len(atom_line.split()) == 1 and atom_line.isdigit():
+            struc_atom.append(int(atom_line))
+struc_lines = [0]
+for i in range(len(struc_atom)):
+    struc_lines.append(struc_lines[-1] + struc_atom[i]+2)
 
 def main():
     if len(sys.argv) < 2:
@@ -48,6 +56,8 @@ reducer.fit(des)
 proj = reducer.transform(des)
 centroid = np.mean(proj, axis=0)
 
+with open(xyz_file, 'r') as file:
+    lines = file.readlines()
 if sys.argv[1] == "all":
     scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff")
     for point in proj:
@@ -60,9 +70,14 @@ elif sys.argv[1] == "select":
     min_distances = [float(arg) for arg in sys.argv[2:]]
     for min_distance in min_distances:
         selected_strucs = FarthestPointSample(des, min_distance=min_distance)
-        write(f"selected_{min_distance}.xyz", [strucs[i] for i in selected_strucs], format='extxyz', write_results=False)
-        abandoned_strucs = [i for i in range(len(strucs)) if i not in selected_strucs]
-        write(f"abandoned_{min_distance}.xyz", [strucs[i] for i in abandoned_strucs], format='extxyz', write_results=False)
+        with open(f"selected_{min_distance}.xyz", 'w') as file1:
+            for i, j in enumerate(selected_strucs):
+                file1.writelines(lines[struc_lines[j]:struc_lines[j+1]])
+        abandoned_strucs = [i for i in range(len(struc_atom)) if i not in selected_strucs]
+        with open(f"abandoned_{min_distance}.xyz", 'w') as file1:
+            for i, j in enumerate(abandoned_strucs):
+                file1.writelines(lines[struc_lines[j]:struc_lines[j+1]])
+        
         scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff", label="All")
         selected_proj = reducer.transform(np.array([des[i] for i in selected_strucs]))
         selected_centroid = np.mean(selected_proj, axis=0)
@@ -85,9 +100,13 @@ if sys.argv[1] == "pick":
         current_proj = pick_points(proj, range_x, range_y)
         picked_proj.update(current_proj)
     picked_proj = list(picked_proj)
-    write("picked.xyz", [strucs[i] for i in picked_proj], format='extxyz', write_results=False)
-    retained_proj = [i for i in range(len(strucs)) if i not in picked_proj]
-    write('retained.xyz', [strucs[i] for i in retained_proj], format='extxyz', write_results=False)
+    with open("picked.xyz", 'w') as file1:
+        for i in picked_proj:
+            file1.writelines(lines[struc_lines[i]:struc_lines[i+1]])
+    retained_strucs = [i for i in range(len(struc_atom)) if i not in picked_proj]
+    with open("retained.xyz", 'w') as file1:
+        for i in retained_strucs:
+            file1.writelines(lines[struc_lines[i]:struc_lines[i+1]])
     scatter(proj[picked_proj, 0], proj[picked_proj, 1], alpha=0.5, color='C1', label="Picked")
     scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retained")
     legend()
