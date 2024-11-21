@@ -1,6 +1,5 @@
 import sys
 import numpy as np
-from ase.io import read, write
 
 def main():
     if len(sys.argv) < 5:
@@ -13,10 +12,16 @@ def main():
 if __name__ == "__main__":
     main()
 
-strucs = read(sys.argv[2], ":")
-atom_counts = [0]
-for atoms in strucs:
-    atom_counts.append(atom_counts[-1] + len(atoms))
+with open(sys.argv[2], 'r') as file:
+    struc_atom = []
+    for line in file:
+        atom_line = line.strip()
+        if len(atom_line.split()) == 1 and atom_line.isdigit():
+            struc_atom.append(int(atom_line))
+atom_counts, struc_lines = [0], [0]
+for i in range(len(struc_atom)):
+    atom_counts.append(atom_counts[-1] + struc_atom[i])
+    struc_lines.append(struc_lines[-1] + struc_atom[i]+2)
 
 fout = np.loadtxt(sys.argv[3])
 if 'energy' in sys.argv[3]:
@@ -75,6 +80,14 @@ elif sys.argv[1] == 'rmse':
     rmse_id =np.argsort(np.array(rmse))
     struc_id = sorted(set(rmse_id[-max_rmse_strucs:]))
 
-write('deviate.xyz', [strucs[i] for i in struc_id], format='extxyz', write_results=False)
-retain_id = [i for i in range(len(strucs)) if i not in struc_id]
-write('reserve.xyz', [strucs[i] for i in retain_id], format='extxyz', write_results=False)
+with open(sys.argv[2], 'r') as file:
+    lines = file.readlines()
+with open('deviate.xyz', 'w') as file1:
+    for i, j in enumerate(struc_id):
+        file1.writelines(lines[struc_lines[j]:struc_lines[j+1]])
+retain_id = [i for i in range(len(struc_atom)) if i not in struc_id]
+with open('reserve.xyz', 'w') as file2:
+    for i, j in enumerate(retain_id):
+        file2.writelines(lines[struc_lines[j]:struc_lines[j+1]])
+
+
