@@ -44,7 +44,6 @@ def calc_r2_rmse(out_file):
 
 dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
 model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
-print(model_type)
 def plot_loss():
     if loss.shape[1] < 7:
         loglog(loss[:, 2:5])
@@ -187,3 +186,4 @@ else:
             diag_types.append('stress')
             plot_diagonals(diag_types, 2, 2, 1)
     savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
+
