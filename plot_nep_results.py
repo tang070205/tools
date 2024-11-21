@@ -1,4 +1,4 @@
-import os
+import os, glob
 import numpy as np
 from pylab import *
 from sklearn.metrics import r2_score
@@ -33,8 +33,7 @@ for file in files:
 
 def get_counts2two(out_file):
     file_nums = int(out_file.shape[1]//2)
-    new_nep = out_file[:, :file_nums].flatten()
-    new_dft = out_file[:, file_nums:].flatten()
+    new_nep, new_dft = out_file[:, :file_nums].flatten(), out_file[:, file_nums:].flatten()
     return np.column_stack((new_nep, new_dft))
 
 def calc_r2_rmse(out_file):
@@ -43,29 +42,32 @@ def calc_r2_rmse(out_file):
     rmse_file = np.sqrt(np.mean((out_file[:, :file_columns]-out_file[:, file_columns:])**2))
     return rmse_file, r2_file
 
+dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
+model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
+print(model_type)
 def plot_loss():
-    if os.path.exists('dipole_train.out'):
-        loglog(loss[:, 1:5])
+    if loss.shape[1] < 7:
+        loglog(loss[:, 2:5])
         if os.path.exists('test.xyz'):
             loglog(loss[:, 5])
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole-train', 'Dipole-test'], ncol=5, frameon=False, fontsize=8, loc='upper right')
+            legend([ r'$L_1$', r'$L_2$', f'{model_type}-train', f'{model_type}test'], ncol=4, frameon=False, fontsize=8.5, loc='upper right')
         else:
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Dipole'], ncol=4, frameon=False, fontsize=8, loc='upper right')
-    elif os.path.exists('polarizability_train.out'):
-        loglog(loss[:, 1:5])
-        if os.path.exists('test.xyz'):
-            loglog(loss[:, 5])
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability-train', 'Polarizability-test'], ncol=5, frameon=False, fontsize=8, loc='upper right')
-        else:
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Polarizability'], ncol=4, frameon=False, fontsize=8, loc='upper right')
+            legend([ r'$L_1$', r'$L_2$', f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
     else: 
-        loglog(loss[:, 1:7])
-        if os.path.exists('test.xyz'):
-            loglog(loss[:, 7:10])
-            legend(['Tot', r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test'], 
-                    ncol=3, frameon=False, fontsize=8, loc='lower left')
+        if '-1e+06' in open('virial_train.out', 'r').read():
+            loglog(loss[:, 2:6])
+            if os.path.exists('test.xyz'):
+                loglog(loss[:, 7:9])
+                legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'E-test', 'F-test'], ncol=3, frameon=False, fontsize=10, loc='lower left')
+            else:
+                legend([r'$L_1$', r'$L_2$', 'Energy', 'Force'], ncol=4, frameon=False, fontsize=8, loc='upper right')
         else:
-            legend(['Tot', r'$L_1$', r'$L_2$', 'Energy', 'Force', 'Virial'], ncol=2, frameon=False, fontsize=8, loc='lower left')
+            loglog(loss[:, 2:7])
+            if os.path.exists('test.xyz'):
+                loglog(loss[:, 7:10])
+                legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test'], ncol=2, frameon=False, fontsize=8, loc='lower left')
+            else:
+                legend([r'$L_1$', r'$L_2$', 'Energy', 'Force', 'Virial'], ncol=5, frameon=False, fontsize=8, loc='upper right')
     xlabel('Generation/100')
     ylabel('Loss')
     tight_layout()
@@ -73,76 +75,59 @@ def plot_loss():
 
 def plot_diagonal(data):
     color_train, color_test = generate_colors(data)
-    def plot_value(values, columns, color):
-        if three_six_component == 0:
+    def plot_value(values, color):
+        columns = int(values.shape[1]//2)
+        if three_six_component == 0 or data == 'energy':
             plot(values[:, 1], values[:, 0], '.', color=color)
         else:
-            if data == 'energy':
-                plot(values[:, 1], values[:, 0], '.', color=color)
-            else:
-                for i in range(columns):
-                    plot(values[:, i+columns], values[:, i], '.', color=color[i % len(color)])
+            for i in range(columns):
+                plot(values[:, i+columns], values[:, i], '.', color=color[i % len(color)])
     pass
 
     units = {'force': 'eV/Å', 'stress': 'GPa', 'energy': 'eV/atom','virial': 'eV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
     munits = {'force': 'meV/Å', 'stress': 'MPa', 'energy': 'meV/atom','virial': 'meV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
-    def generate_dirs(types, prefixes):
-        components = {3: ['x', 'y', 'z'], 6: ['xx', 'yy', 'zz', 'xy', 'yz', 'xz']}
-        if os.path.exists(f"{data}_test.out"):
-            return {typ: [f"{prefix}_{comp}" for comp in components[3 if typ in ['force', 'dipole'] else 6]] for typ in types for prefix in prefixes}
-        else:
-            return {typ: [f"{comp}" for comp in components[3 if typ in ['force', 'dipole'] else 6]] for typ in types}
-    types = ['force', 'stress', 'virial', 'dipole', 'polarizability']
-    prefixes = ['train', 'test']
-    train_dirs, test_dirs = generate_dirs(types, prefixes[0::2]), generate_dirs(types, prefixes[1::2])
-    train_dir = train_dirs.get(data, 'unknown train_dirs')
-    test_dir = test_dirs.get(data, 'unknown test_dirs')
+    label_unit = units.get(data, 'unknown unit')
+    def get_unit(rmse_data):
+        return munits.get(data, 'unknown unit') if rmse_data < 1 else units.get(data, 'unknown unit')
 
-    if three_six_component == 0:
-        if data == 'energy':
-            data_train = globals().get(f"{data}_train")
+    def generate_dirs(types, prefixes):
+        comps = {3: ['x', 'y', 'z'], 6: ['xx', 'yy', 'zz', 'xy', 'yz', 'xz']}
+        if os.path.exists(f"{data}_test.out"):
+            return {typ: [f"{prefix}_{comp}" for comp in comps[3 if typ in ['force', 'dipole'] else 6]] for typ in types for prefix in prefixes}
         else:
-            data_train_two = get_counts2two(globals().get(f"{data}_train"))
-            data_train = data_train_two
-    else:
-        data_train = globals().get(f"{data}_train")
-    train_columns = int(data_train.shape[1]//2)
-    plot_value(data_train, train_columns, color_train)
+            return {typ: [f"{comp}" for comp in comps[3 if typ in ['force', 'dipole'] else 6]] for typ in types}
+    properties, prefixes = ['force', 'stress', 'virial', 'dipole', 'polarizability'], ['train', 'test']
+    train_dirs, test_dirs = generate_dirs(properties, prefixes[0::2]), generate_dirs(properties, prefixes[1::2])
+    train_dir, test_dir = train_dirs.get(data, 'unknown train_dirs'), test_dirs.get(data, 'unknown test_dirs')
+
+    def process_data(data_type):
+        if three_six_component == 0:
+            return globals().get(f"{data}_{data_type}") if data == 'energy' else get_counts2two(globals().get(f"{data}_{data_type}"))
+        else:
+            return globals().get(f"{data}_{data_type}")
+    data_train = process_data('train')
+    plot_value(data_train, color_train)
     rmse_data_train, r2_data_train = calc_r2_rmse(data_train)
 
     if os.path.exists(f"{data}_test.out"):
-        if three_six_component == 0:
-            if data == 'energy':
-                data_test = globals().get(f"{data}_test")
-            else:
-                data_test_two = get_counts2two(globals().get(f"{data}_test"))
-                data_test = data_test_two
-        else:
-            data_test = globals().get(f"{data}_test")
-        test_columns = int(data_test.shape[1]//2)
-        plot_value(data_test, test_columns, color_test)
+        data_test = process_data('test')
+        plot_value(data_test, color_test)
         rmse_data_test, r2_data_test = calc_r2_rmse(data_test)
-        if rmse_data_test < 1:
-            unit = munits.get(data, 'unknown unit')
-        else:
-            unit = units.get(data, 'unknown unit')
+        unitest = get_unit(rmse_data_test)
         if three_six_component == 0 or data == 'energy':
-            legend([f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', 
-                   f'test RMSE= {1000*rmse_data_test:.3f} {unit} R²= {r2_data_test:.3f}'], frameon=False, fontsize=10)
+            legend([f'train RMSE= {1000*rmse_data_train:.3f} {unitest} R²= {r2_data_train:.3f}', 
+                   f'test RMSE= {1000*rmse_data_test:.3f} {unitest} R²= {r2_data_test:.3f}'], frameon=False, fontsize=10)
         else:
             legend(train_dir+test_dir, frameon=False, fontsize=9, ncol=2, loc='upper left', bbox_to_anchor=(0, 0.9))
-            annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', xy=(0.09, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
-            annotate(f'test RMSE= {1000*rmse_data_test:.3f} {unit} R²= {r2_data_test:.3f}', xy=(0.09, 0.92), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unitest} R²= {r2_data_train:.3f}', xy=(0.09, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'test RMSE= {1000*rmse_data_test:.3f} {unitest} R²= {r2_data_test:.3f}', xy=(0.09, 0.92), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     else:
-        if rmse_data_train < 1:
-            unit = munits.get(data, 'unknown unit')
-        else:
-            unit = units.get(data, 'unknown unit')
+        unitrain = get_unit(rmse_data_train)
         if three_six_component == 0 or data == 'energy':
-            legend([f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}'], frameon=False, fontsize=10)
+            legend([f'train RMSE= {1000*rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}'], frameon=False, fontsize=10)
         else:
             legend(train_dir, frameon=False, fontsize=10, loc='upper left', bbox_to_anchor=(0, 0.95))
-            annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unit} R²= {r2_data_train:.3f}', xy=(0.1, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     
     diagonal_min, diagonal_max = diagonal_range.get(data, (None, None))
     coord_min, coord_max = coord_range.get(data, (None, None))
@@ -150,85 +135,55 @@ def plot_diagonal(data):
     if use_coord_range == 1:
         xlim(coord_min, coord_max)
         ylim(coord_min, coord_max)
-    else:
-        None
-    xlabel(f"DFT {data} ({unit})")
-    ylabel(f"NEP {data} ({unit})")
+    xlabel(f"DFT {data} ({label_unit})")
+    ylabel(f"NEP {data} ({label_unit})")
     tight_layout()
     pass
 
+def plot_diagonals(diag_types, hang, lie, start):
+    for i, diag_type in enumerate(diag_types):
+        subplot(hang, lie, i+start)
+        plot_diagonal(diag_type)
+    pass
+diag_types = ['energy', 'force']
 if os.path.exists('loss.out'):
     print('NEP训练')
-    if os.path.exists('nep.in'):
-        with open('nep.in', 'r') as file:
-            for line in file:
-                line = line.strip()
-                if 'labbma_v' in line:
-                    lambda_v = float(line.split()[2])
-                else:
-                    lambda_v = 0.1
-    else:
-        lambda_v = 0.1
-    if os.path.exists('dipole_train.out'):
-        figure(figsize=(12,5))
+    if model_type is not None:
+        figure(figsize=(11,5))
         subplot(1,2,1)
         plot_loss()
         subplot(1,2,2)
-        plot_diagonal('dipole')
-        savefig('nep-dipole.png', dpi=150, bbox_inches='tight')
-    elif os.path.exists('polarizability_train.out'):
-        plt.figure(figsize=(12,5))
-        subplot(1,2,1)
-        plot_loss()
-        subplot(1,2,2)
-        plot_diagonal('polarizability')
-        savefig('nep-polarizability.png', dpi=150, bbox_inches='tight')
+        plot_diagonal(f'{model_type}')
+        savefig(f'nep-{model_type}.png', dpi=200, bbox_inches='tight')
     else:
-        if lambda_v > 0:
+        if '-1e+06' in open('virial_train.out', 'r').read():
+            figure(figsize=(17,5))
+            subplot(1,3,1)
+            plot_loss()
+            plot_diagonals(diag_types, 1, 3, 2)
+        else:
+            diag_types.append('virial')
             figure(figsize=(12,10))
             subplot(2,2,1)
-            plot_loss()
-            subplot(2,2,2)
-            plot_diagonal('energy')
-            subplot(2,2,3)
-            plot_diagonal('force')
-            subplot(2,2,4)
-            plot_diagonal('virial')
-            #plot_diagonal('stress')
-        else:
-            figure(figsize=(14,5))
-            subplot(1,3,1)
             plot_loss()  
-            subplot(1,3,2)
-            plot_diagonal('energy')
-            subplot(1,3,3)
-            plot_diagonal('force')
-        savefig('nep.png', dpi=150, bbox_inches='tight')
+            plot_diagonals(diag_types, 2, 2, 2)
+        savefig('nep.png', dpi=200, bbox_inches='tight')
 else:
     print('NEP预测')
-    if os.path.exists('dipole_train.out'):
-        figure(figsize=(5,5))
-        plot_diagonal('dipole')
-    elif os.path.exists('polarizability_train.out'):
-        figure(figsize=(5,5))
-        plot_diagonal('polarizability')
+    if model_type is not None:
+        figure(figsize=(5.5,5))
+        plot_diagonal(f'{model_type}')
     else:
-        if not os.path.exists('stress_train.out'):
-            figure(figsize=(14,5))
-            subplot(1,3,1)
-            plot_diagonal('energy')
-            subplot(1,3,2)
-            plot_diagonal('force')
-            subplot(1,3,3)
-            plot_diagonal('virial')
+        if '-1e+06' in open('virial_train.out', 'r').read():
+            figure(figsize=(11,5))
+            plot_diagonals(diag_types, 1, 2, 1)
+        elif not os.path.exists('stress_train.out'):
+            figure(figsize=(17,5))
+            diag_types.append('virial')
+            plot_diagonals(diag_types, 1, 3, 1)
         else:
-            figure(figsize=(12,10))
-            subplot(2,2,1)
-            plot_diagonal('energy')
-            subplot(2,2,2)
-            plot_diagonal('force')
-            subplot(2,2,3)
-            plot_diagonal('virial')
-            subplot(2,2,4)
-            plot_diagonal('stress')
-    savefig('nep-prediction.png', dpi=150, bbox_inches='tight')
+            figure(figsize=(11,10))
+            diag_types.append('virial')
+            diag_types.append('stress')
+            plot_diagonals(diag_types, 2, 2, 1)
+    savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
