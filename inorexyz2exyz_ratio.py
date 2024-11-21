@@ -1,6 +1,5 @@
-from ase.io import read, write
-import os, re, sys, glob, math, random
 import numpy as np
+import os, re, sys, glob, math, random
 
 def main():
     if len(sys.argv) < 2:
@@ -93,13 +92,27 @@ if sys.argv[1].endswith('.in'):
         os.remove(file) 
 
 elif sys.argv[1].endswith('.xyz'):
-
-    strucs = read(in_file, ":")
+    with open(in_file, 'r') as file:
+        struc_atom = []
+        for line in file:
+            atom_line = line.strip()
+            if len(atom_line.split()) == 1 and atom_line.isdigit():
+                struc_atom.append(int(atom_line))
+    struc_lines = [0]
+    for i in range(len(struc_atom)):
+        struc_lines.append(struc_lines[-1] + struc_atom[i]+2)
     ratio = float(sys.argv[2])
-    nframes = [i for i in range(len(strucs))]
+    nframes = [i for i in range(len(struc_atom))]
     random.shuffle(nframes)
-    extract_frame = sorted(nframes[:int(len(strucs)*ratio)])
-    write(extract_file, [strucs[i] for i in extract_frame], format='extxyz', write_results=False)
-    surplus_frame = sorted(nframes[int(len(strucs)*ratio):])
-    write(surplus_file, [strucs[i] for i in surplus_frame], format='extxyz', write_results=False)
+
+    with open(sys.argv[2], 'r') as file:
+        lines = file.readlines()
+    extract_frame = sorted(nframes[:int(len(struc_atom)*ratio)])
+    with open(extract_file, 'w') as file1:
+        for i, j in enumerate(extract_frame):
+            file1.writelines(lines[struc_lines[j]:struc_lines[j+1]])
+    surplus_frame = sorted(nframes[int(len(struc_atom)*ratio):])
+    with open(surplus_file, 'w') as file2:
+        for i, j in enumerate(surplus_frame):
+            file2.writelines(lines[struc_lines[j]:struc_lines[j+1]])
 
