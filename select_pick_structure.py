@@ -1,26 +1,22 @@
 import sys
 import numpy as np
 from pylab import *
+from ase.io import read
 from calorine.nep import get_descriptors
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import cdist
 
 xyz_file = "train.xyz"
 nep_name = "nep.txt"
-with open(xyz_file, 'r') as file:
-    struc_atom = []
-    for line in file:
-        atom_line = line.strip()
-        if len(atom_line.split()) == 1 and atom_line.isdigit():
-            struc_atom.append(int(atom_line))
+strucs = read(xyz_file, ":")
 struc_lines = [0]
-for i in range(len(struc_atom)):
-    struc_lines.append(struc_lines[-1] + struc_atom[i]+2)
+for atoms in strucs:
+    struc_lines.append(struc_lines[-1] + len(atoms)+2)
 
 def main():
     if len(sys.argv) < 2:
         print("Usage: python sclect_pick_structure.py all #这个看所有点的位置情况")
-        print("Usage: python sclect_pick_structure.py select min_distance_1 min_distance_2 ......")
+        print("Usage: python sclect_pick_structure.py select min_distance_1/max_select_1 min_distance_2/max_select_2 ......")
         print("Usage: python sclect_pick_structure.py pick x1_start x1_end y1_start y1_end x2_start x2_end y2_start y2_end ......")
         sys.exit(1)
 if __name__ == "__main__":
@@ -54,44 +50,49 @@ des = np.array([np.mean(get_descriptors(i, model_filename=nep_name), axis=0) for
 reducer = PCA(n_components=2)
 reducer.fit(des)
 proj = reducer.transform(des)
-centroid = np.mean(proj, axis=0)
 
 with open(xyz_file, 'r') as file:
     lines = file.readlines()
 if sys.argv[1] == "all":
     scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff")
-    for point in proj:
-        plot([centroid[0], point[0]], [centroid[1], point[1]], '-', alpha=0.3, c="#8e9cff")
     xlabel('PC1')
     ylabel('PC2')
     savefig("all-points.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "select":
-    min_distances = [float(arg) for arg in sys.argv[2:]]
-    for min_distance in min_distances:
-        selected_strucs = FarthestPointSample(des, min_distance=min_distance)
-        with open(f"selected_{min_distance}.xyz", 'w') as file1:
+    min_distances = []
+    counts = []
+    for arg in sys.argv[2:]:
+        if arg < 1:
+            min_distances.append(float(arg))
+        else:
+            counts.append(int(arg))
+    select_values = min_distances + counts
+    for select_value in select_values:
+        if select_value < 1:
+            selected_strucs = FarthestPointSample(des, min_distance=select_value)
+        else:
+            selected_strucs = FarthestPointSample(des, min_distance=0, max_select=select_value)
+        with open(f"selected_{select_value}.xyz", 'w') as file1:
             for i, j in enumerate(selected_strucs):
                 file1.writelines(lines[struc_lines[j]:struc_lines[j+1]])
-        abandoned_strucs = [i for i in range(len(struc_atom)) if i not in selected_strucs]
-        with open(f"abandoned_{min_distance}.xyz", 'w') as file1:
+        abandoned_strucs = [i for i in range(len(strucs)) if i not in selected_strucs]
+        with open(f"abandoned_{select_value}.xyz", 'w') as file1:
             for i, j in enumerate(abandoned_strucs):
                 file1.writelines(lines[struc_lines[j]:struc_lines[j+1]])
         
         scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff", label="All")
         selected_proj = reducer.transform(np.array([des[i] for i in selected_strucs]))
-        selected_centroid = np.mean(selected_proj, axis=0)
-        scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="min_distance={}".format(min_distance))
-        for point in proj:
-            plot([centroid[0], point[0]], [centroid[1], point[1]], '-', alpha=0.3, c="#8e9cff")
-        for selected_point in selected_proj:
-            plot([selected_centroid[0], selected_point[0]], [selected_centroid[1], selected_point[1]], '-', alpha=0.4, c="#e26fff")
+        if select_value < 1:
+            scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="min_distance={}".format(select_value))
+        else:
+            scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="select_counts={}".format(select_value))
         xlabel('PC1')
         ylabel('PC2')
         legend()
         savefig(f"select_{min_distance}.png", dpi=150, bbox_inches='tight')
 
-if sys.argv[1] == "pick":
+elif sys.argv[1] == "pick":
     picked_proj = set()
     for i in range(2, len(sys.argv), 4):
         x_start, x_end, y_start, y_end = map(float, sys.argv[i:i+4])
@@ -103,7 +104,7 @@ if sys.argv[1] == "pick":
     with open("picked.xyz", 'w') as file1:
         for i in picked_proj:
             file1.writelines(lines[struc_lines[i]:struc_lines[i+1]])
-    retained_strucs = [i for i in range(len(struc_atom)) if i not in picked_proj]
+    retained_strucs = [i for i in range(len(strucs)) if i not in picked_proj]
     with open("retained.xyz", 'w') as file1:
         for i in retained_strucs:
             file1.writelines(lines[struc_lines[i]:struc_lines[i+1]])
