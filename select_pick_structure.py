@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from pylab import *
 from ase.io import read
-from calorine.nep import get_descriptors
+from NepTrain.core.nep import *
 from sklearn.decomposition import PCA
 from scipy.spatial.distance import cdist
 
@@ -46,7 +46,8 @@ def pick_points(proj, range_x, range_y):
             pick_strucs.append(i)
     return pick_strucs
 
-des = np.array([np.mean(get_descriptors(i, model_filename=nep_name), axis=0) for i in strucs])
+nep3=Nep3Calculator(nep_name)
+des = [nep3.get_descriptors(i).mean(0) for i in strucs]
 reducer = PCA(n_components=2)
 reducer.fit(des)
 proj = reducer.transform(des)
@@ -69,7 +70,7 @@ elif sys.argv[1] == "select":
             counts.append(int(arg))
     select_values = min_distances + counts
     for select_value in select_values:
-        if select_value < 1:
+        if flaot(select_value) < 1:
             selected_strucs = FarthestPointSample(des, min_distance=select_value)
         else:
             selected_strucs = FarthestPointSample(des, min_distance=0, max_select=select_value)
@@ -83,14 +84,14 @@ elif sys.argv[1] == "select":
         
         scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff", label="All")
         selected_proj = reducer.transform(np.array([des[i] for i in selected_strucs]))
-        if select_value < 1:
+        if float(select_value) < 1:
             scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="min_distance={}".format(select_value))
         else:
             scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="select_counts={}".format(select_value))
         xlabel('PC1')
         ylabel('PC2')
         legend()
-        savefig(f"select_{min_distance}.png", dpi=150, bbox_inches='tight')
+        savefig(f"select_{select_value}.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "pick":
     picked_proj = set()
