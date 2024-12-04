@@ -103,11 +103,13 @@ def plot_diagonal(data):
         else:
             return globals().get(f"{data}_{data_type}")
     data_train = process_data('train')
+    train_min, train_max = np.floor(np.min(data_train)), np.ceil(np.max(data_train))
     plot_value(data_train, color_train)
     rmse_data_train, r2_data_train = calc_r2_rmse(data_train)
 
     if os.path.exists(f"{data}_test.out"):
         data_test = process_data('test')
+        test_min, test_max = np.floor(np.min(data_test)), np.ceil(np.max(data_test))
         plot_value(data_test, color_test)
         rmse_data_test, r2_data_test = calc_r2_rmse(data_test)
         unitest = get_unit(rmse_data_test)
@@ -127,7 +129,8 @@ def plot_diagonal(data):
             annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     
     if use_range == 0:
-        range_min, range_max = np.floor(np.min(f"{data}_{data_type}")), np.ceil(np.max(f"{data}_{data_type}"))
+        range_min = train_min if train_min < test_min else test_min
+        range_max = train_max if train_max > test_max else test_max
     elif use_range == 1:
         range_min, range_max = plot_range.get(data, (None, None))
     elif use_range == 2:
@@ -187,3 +190,5 @@ else:
             diag_types.append('stress')
             plot_diagonals(diag_types, 2, 2, 1)
     savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
+
+
