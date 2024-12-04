@@ -4,11 +4,9 @@ from pylab import *
 from sklearn.metrics import r2_score
 
 three_six_component = 0   # 0不画三六分量，1画三六分量
-diagonal_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
-              'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}  #对角线范围
-use_coord_range = 0   # 0不使用坐标范围，1使用坐标范围
-coord_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
-              'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}
+use_range = 0   # 0使用默认读取文件最大值个最小值作范围，1使用对角线范围，2使用坐标轴范围
+plot_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
+       'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}  #对角线范围
 
 def generate_colors(data):
     if three_six_component == 0:
@@ -128,12 +126,15 @@ def plot_diagonal(data):
             legend(train_dir, frameon=False, fontsize=10, loc='upper left', bbox_to_anchor=(0, 0.95))
             annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     
-    diagonal_min, diagonal_max = diagonal_range.get(data, (None, None))
-    coord_min, coord_max = coord_range.get(data, (None, None))
-    plot(linspace(diagonal_min, diagonal_max), linspace(diagonal_min, diagonal_max), '-')
-    if use_coord_range == 1:
-        xlim(coord_min, coord_max)
-        ylim(coord_min, coord_max)
+    if use_range == 0:
+        range_min, range_max = np.floor(np.min(f"{data}_{data_type}")), np.ceil(np.max(f"{data}_{data_type}"))
+    elif use_range == 1:
+        range_min, range_max = plot_range.get(data, (None, None))
+    elif use_range == 2:
+        range_min, range_max = plot_range.get(data, (None, None))
+        xlim(range_min, range_max)
+        ylim(range_min, range_max)
+    plot(linspace(range_min, range_max), linspace(range_min, range_max), '-')
     xlabel(f"DFT {data} ({label_unit})")
     ylabel(f"NEP {data} ({label_unit})")
     tight_layout()
@@ -186,4 +187,3 @@ else:
             diag_types.append('stress')
             plot_diagonals(diag_types, 2, 2, 1)
     savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
-
