@@ -5,21 +5,10 @@ from sklearn.metrics import r2_score
 
 three_six_component = 0   # 0不画三六分量，1画三六分量
 use_range = 0   # 0使用默认读取文件最大值个最小值作范围，1使用对角线范围，2使用坐标轴范围
-plot_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
-       'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}  #对角线范围
-
-def generate_colors(data):
-    if three_six_component == 0:
-        return 'deepskyblue', 'orange'   #不画三六分量，前是训练集颜色，后是测试集颜色
-    else:
-        #这里的colors可以随便更改，只要训练集和测试集的颜色不一样即可
-        colors = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan', 'magenta', 'lime', 'teal', 'navy', 'olive', 'maroon']
-        if data in ['force', 'dipole']:
-            return colors[:3], colors[3:6]
-        elif data == 'energy':
-            return 'deepskyblue', 'orange'   #能量本身就只有两列
-        else:
-            return colors[:6], colors[6:]
+plot_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}
+#这里的colors可以随便更改，只要训练集和测试集的颜色不一样即可，如果不画分量那就训练集deepskyblue测试集orange
+train_colors = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan'] #力的话各取前三个
+test_colors = ['magenta', 'lime', 'teal', 'navy', 'olive', 'maroon']
 
 files = ['loss.out', 'energy_train.out', 'energy_test.out', 
          'force_train.out', 'force_test.out', 'virial_train.out', 'virial_test.out', 
@@ -28,6 +17,15 @@ files = ['loss.out', 'energy_train.out', 'energy_test.out',
 for file in files:
     if os.path.exists(file):
         vars()[file.split('.')[0]] = np.loadtxt(file)
+
+def generate_colors(data):
+    if three_six_component == 0 or data == 'energy':
+        return 'deepskyblue', 'orange'   #不画三六分量，前是训练集颜色，后是测试集颜色
+    else:
+        if data in ['force', 'dipole']:
+            return train_colors[:3], test_colors[:3]
+        else:
+            return train_colors, test_colors
 
 def get_counts2two(out_file):
     file_nums = int(out_file.shape[1]//2)
@@ -57,14 +55,14 @@ def plot_loss():
                 loglog(loss[:, 7:9])
                 legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'E-test', 'F-test'], ncol=3, frameon=False, fontsize=10, loc='lower left')
             else:
-                legend([r'$L_1$', r'$L_2$', 'Energy', 'Force'], ncol=4, frameon=False, fontsize=8, loc='upper right')
+                legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train'], ncol=4, frameon=False, fontsize=8, loc='upper right')
         else:
             loglog(loss[:, 2:7])
             if os.path.exists('test.xyz'):
                 loglog(loss[:, 7:10])
                 legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test'], ncol=2, frameon=False, fontsize=8, loc='lower left')
             else:
-                legend([r'$L_1$', r'$L_2$', 'Energy', 'Force', 'Virial'], ncol=5, frameon=False, fontsize=8, loc='upper right')
+                legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train'], ncol=5, frameon=False, fontsize=8, loc='upper right')
     xlabel('Generation/100')
     ylabel('Loss')
     tight_layout()
@@ -129,8 +127,11 @@ def plot_diagonal(data):
             annotate(f'train RMSE= {1000*rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     
     if use_range == 0:
-        range_min = train_min if train_min < test_min else test_min
-        range_max = train_max if train_max > test_max else test_max
+        if os.path.exists(f"{data}_test.out"):
+            range_min = train_min if train_min < test_min else test_min
+            range_max = train_max if train_max > test_max else test_max
+        else:
+            range_min, range_max = train_min, train_max
     elif use_range == 1:
         range_min, range_max = plot_range.get(data, (None, None))
     elif use_range == 2:
@@ -190,5 +191,4 @@ else:
             diag_types.append('stress')
             plot_diagonals(diag_types, 2, 2, 1)
     savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
-
 
