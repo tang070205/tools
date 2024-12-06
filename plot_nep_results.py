@@ -1,7 +1,6 @@
 import os, glob
 import numpy as np
 from pylab import *
-from sklearn.metrics import r2_score
 
 three_six_component = 0   # 0不画三六分量，1画三六分量
 use_range = 0   # 0使用默认读取文件最大值个最小值作范围，1使用对角线范围，2使用坐标轴范围
@@ -34,7 +33,9 @@ def get_counts2two(out_file):
 
 def calc_r2_rmse(out_file):
     file_columns = out_file.shape[1]//2
-    r2_file = r2_score(out_file[:, :file_columns], out_file[:, file_columns:])
+    numerator = np.sum((out_file[:, :file_columns] - out_file[:, file_columns:]) ** 2)
+    denominator = np.sum((out_file[:, :file_columns] - np.mean(out_file[:, :file_columns])) ** 2)
+    r2_file = 1.0 if denominator == 0 else 1 - (numerator / denominator)
     rmse_file = np.sqrt(np.mean((out_file[:, :file_columns]-out_file[:, file_columns:])**2))
     return rmse_file, r2_file
 
@@ -191,4 +192,3 @@ else:
             diag_types.append('stress')
             plot_diagonals(diag_types, 2, 2, 1)
     savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
-
