@@ -154,7 +154,7 @@ def plot_diagonals(diag_types, hang, lie, start):
         subplot(hang, lie, i+start)
         plot_diagonal(diag_type)
     pass
-diag_types = ['energy', 'force']
+diag_types, type_vs = ['energy', 'force'], ['virial', 'stress']
 if os.path.exists('loss.out'):
     print('NEP训练')
     if model_type is not None:
@@ -192,8 +192,8 @@ else:
             plot_diagonals(diag_types, 1, 3, 1)
         else:
             figure(figsize=(11,10))
-            diag_types.append('virial')
-            diag_types.append('stress')
-            plot_diagonals(diag_types, 2, 2, 1)
+            diag_types_vs = diag_types + type_vs
+            plot_diagonals(diag_types_vs, 2, 2, 1)
     savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
+
 
