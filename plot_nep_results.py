@@ -125,6 +125,7 @@ def plot_diagonal(data):
             annotate(f'train RMSE= {rmse_data_train:.3f} {unitest} R²= {r2_data_train:.3f}', xy=(0.09, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
             annotate(f'test RMSE= {rmse_data_test:.3f} {unitest} R²= {r2_data_test:.3f}', xy=(0.09, 0.92), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     else:
+        test_min, test_max = None, None
         unitrain = get_unit(origin_rmse_train)
         if three_six_component == 0 or data == 'energy':
             legend([f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}'], frameon=False, fontsize=10)
@@ -133,8 +134,8 @@ def plot_diagonal(data):
             annotate(f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     
     if use_range == 0:
-        range_min = train_min if train_min < test_min or tese_min is None else test_min
-        range_max = train_max if train_max > test_max or test_max is None else test_max
+        range_min = train_min if tese_min is None or train_min < test_min else test_min
+        range_max = train_max if test_max is None or train_max > test_max else test_max
     elif use_range == 1:
         range_min, range_max = plot_range.get(data, (None, None))
     elif use_range == 2:
@@ -195,5 +196,4 @@ else:
             diag_types_vs = diag_types + type_vs
             plot_diagonals(diag_types_vs, 2, 2, 1)
     savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
-
 
