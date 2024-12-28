@@ -1,4 +1,4 @@
-大家对脚本有什么建议都可以提出来，大胆提issue
+大家对脚本有什么建议都可以提出来, 大胆提issue
 
 aimd-OUTCARs-xyz2POSCAR.py is used to extract the structure of aimd and then separate it before using the ase package to derive POSCARs for each single point energy to be calculated.
 dumpxyz2POSCAR.py It's a scaled-down version of aimd, a POSCAR exported directly to the GPUMD output dump.xyz with ase.
