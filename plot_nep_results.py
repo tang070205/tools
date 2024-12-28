@@ -134,7 +134,7 @@ def plot_diagonal(data):
             annotate(f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     
     if use_range == 0:
-        range_min = train_min if tese_min is None or train_min < test_min else test_min
+        range_min = train_min if test_min is None or train_min < test_min else test_min
         range_max = train_max if test_max is None or train_max > test_max else test_max
     elif use_range == 1:
         range_min, range_max = plot_range.get(data, (None, None))
