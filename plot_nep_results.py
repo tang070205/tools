@@ -164,7 +164,7 @@ if os.path.exists('loss.out'):
         plot_loss()
         subplot(1,2,2)
         plot_diagonal(f'{model_type}')
-        savefig(f'nep-{model_type}.png', dpi=200, bbox_inches='tight')
+        savefig(f'nep-{model_type}.png', dpi=200)
     else:
         if '-1e+06' in open('virial_train.out', 'r').read():
             figure(figsize=(17,5))
@@ -177,7 +177,7 @@ if os.path.exists('loss.out'):
             subplot(2,2,1)
             plot_loss()  
             plot_diagonals(diag_types, 2, 2, 2)
-        savefig('nep.png', dpi=200, bbox_inches='tight')
+        savefig('nep.png', dpi=200)
 else:
     print('NEP预测')
     if model_type is not None:
@@ -195,5 +195,5 @@ else:
             figure(figsize=(11,10))
             diag_types_vs = diag_types + type_vs
             plot_diagonals(diag_types_vs, 2, 2, 1)
-    savefig('nep-prediction.png', dpi=200, bbox_inches='tight')
+    savefig('nep-prediction.png', dpi=200)
 
