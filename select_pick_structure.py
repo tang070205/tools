@@ -64,13 +64,13 @@ elif sys.argv[1] == "select":
     min_distances = []
     counts = []
     for arg in sys.argv[2:]:
-        if arg < 1:
+        if float(arg) < 1:
             min_distances.append(float(arg))
         else:
             counts.append(int(arg))
     select_values = min_distances + counts
     for select_value in select_values:
-        if flaot(select_value) < 1:
+        if float(select_value) < 1:
             selected_strucs = FarthestPointSample(des, min_distance=select_value)
         else:
             selected_strucs = FarthestPointSample(des, min_distance=0, max_select=select_value)
