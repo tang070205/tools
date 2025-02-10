@@ -171,6 +171,7 @@ def plot_diagonal(data):
     pass
 
 def plot_charge():
+    import seaborn as sns
     def get_charge(file, charge_data):
         element_indices = get_indices(file)
         element_charges = {element: [] for element in elements}
@@ -182,12 +183,12 @@ def plot_charge():
     element_charges_train = get_charge('train', charge_train)
     if not os.path.exists("charge_test.out"):
         for element in elements:
-            hist(element_charges_train[element], bins=500, alpha=0.6, label=element)
+            sns.histplot(element_charges_train[element], bins=500, alpha=0.6, label=element, kde=True, line_kws={'lw': 1})
     else:
         element_charges_test = get_charge('test', charge_test)
         for element in elements:
-            hist(element_charges_train[element], bins=500, alpha=0.5, label=f'{element}-train')
-            hist(element_charges_test[element], bins=500, alpha=0.5, label=f'{element}-test')
+            sns.histplot(element_charges_train[element], bins=500, alpha=0.6, label=f'{element}-train', kde=True, line_kws={'lw': 1})
+            sns.histplot(element_charges_test[element], bins=500, alpha=0.6, label=f'{element}-test', kde=True, line_kws={'lw': 1})
 
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
     tick_params(axis='y', which='both', direction='in', left=True, right=True)
