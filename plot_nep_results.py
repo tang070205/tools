@@ -20,7 +20,8 @@ def generate_colors(data):
 files = ['loss.out', 'energy_train.out', 'energy_test.out', 
          'force_train.out', 'force_test.out', 'virial_train.out', 'virial_test.out', 
          'stress_train.out', 'stress_test.out', 'dipole_train.out', 'dipole_test.out', 
-         'polarizability_train.out', 'polarizability_test.out'] 
+         'polarizability_train.out', 'polarizability_test.out',
+         'charge_train.out', 'charge_test.out'] 
 for file in files:
     if os.path.exists(file):
         vars()[file.split('.')[0]] = np.loadtxt(file)
@@ -150,6 +151,48 @@ def plot_diagonal(data):
     tight_layout()
     pass
 
+def plot_charge():
+    with open('nep.in', 'r') as file:
+        for line in file:
+            line = line.strip()
+            if 'type' in line:
+                elements = line.split()[2:]
+    def get_charge(file, charge_data):
+        valid_indices = []
+        element_indices = {element: [] for element in elements}
+        with open(f'{file}.xyz', 'r') as file:
+            for line in file:
+                parts = line.strip().split()
+                if len(parts) > 1 and "Lattice" not in line:
+                    valid_indices.append(line)
+        for i, line in enumerate(valid_indices):
+            parts = line.split()
+            if parts[0] in element_indices:
+                element_indices[parts[0]].append(i)
+        element_charges = {element: [] for element in elements}
+        for element in elements:
+            for idx in element_indices[element]:
+                element_charges[element].append(-float(charge_data[idx]))
+        return element_charges
+
+    element_charges_train = get_charge('train', charge_train)
+    if not os.path.exists("charge_test.out"):
+        for element in elements:
+            hist(element_charges_train[element], bins=500, alpha=0.6, label=element)
+    else:
+        element_charges_test = get_charge('test', charge_test)
+        for element in elements:
+            hist(element_charges_train[element], bins=500, alpha=0.5, label=f'{element}-train')
+            hist(element_charges_test[element], bins=500, alpha=0.5, label=f'{element}-test')
+
+    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+    legend(frameon=False, fontsize=10, loc='upper right')
+    xlabel('Charge')
+    ylabel('Frequency')
+    tight_layout()
+    pass
+
 def plot_diagonals(diag_types, hang, lie, start):
     for i, diag_type in enumerate(diag_types):
         subplot(hang, lie, i+start)
@@ -158,42 +201,54 @@ def plot_diagonals(diag_types, hang, lie, start):
 diag_types, type_vs = ['energy', 'force'], ['virial', 'stress']
 if os.path.exists('loss.out'):
     print('NEP训练')
+    figure(figsize=(5.5,5))
+    plot_loss()
+    savefig('nep-loss.png', dpi=200)
     if model_type is not None:
-        figure(figsize=(11,5))
-        subplot(1,2,1)
-        plot_loss()
-        subplot(1,2,2)
+        figure(figsize=(5.5,5))
         plot_diagonal(f'{model_type}')
         savefig(f'nep-{model_type}.png', dpi=200)
     else:
         if '-1e+06' in open('virial_train.out', 'r').read():
             figure(figsize=(17,5))
-            subplot(1,3,1)
-            plot_loss()
-            plot_diagonals(diag_types, 1, 3, 2)
+            plot_diagonals(diag_types, 1, 2, 1)
+        elif not os.path.exists('stress_train.out'):
+            diag_types_v = diag_types + [type_vs[0]]
+            figure(figsize=(16.5,5))
+            plot_diagonals(diag_types_v, 1, 3, 1)
         else:
-            diag_types.append('virial')
             figure(figsize=(11,10))
-            subplot(2,2,1)
-            plot_loss()  
-            plot_diagonals(diag_types, 2, 2, 2)
-        savefig('nep.png', dpi=200)
+            diag_types_vs = diag_types + type_vs
+            plot_diagonals(diag_types_vs, 2, 2, 1)
+        savefig('nep-diagonal.png', dpi=200)
+    if os.path.exists('charge_train.out'):
+        figure(figsize=(5.5,5))
+        plot_charge()
+        savefig('nep-charge.png', dpi=200)
+    else:
+        None
 else:
     print('NEP预测')
     if model_type is not None:
         figure(figsize=(5.5,5))
         plot_diagonal(f'{model_type}')
+        savefig(f'nep-{model_type}.png', dpi=200)
     else:
         if '-1e+06' in open('virial_train.out', 'r').read():
-            figure(figsize=(11,5))
+            figure(figsize=(17,5))
             plot_diagonals(diag_types, 1, 2, 1)
         elif not os.path.exists('stress_train.out'):
-            figure(figsize=(17,5))
-            diag_types.append('virial')
-            plot_diagonals(diag_types, 1, 3, 1)
+            diag_types_v = diag_types + [type_vs[0]]
+            figure(figsize=(16.5,5))
+            plot_diagonals(diag_types_v, 1, 3, 1)
         else:
             figure(figsize=(11,10))
             diag_types_vs = diag_types + type_vs
             plot_diagonals(diag_types_vs, 2, 2, 1)
-    savefig('nep-prediction.png', dpi=200)
-
+        savefig('nep-diagonal.png', dpi=200)
+    if os.path.exists('charge_train.out'):
+        figure(figsize=(5.5,5))
+        plot_charge()
+        savefig('nep-charge.png', dpi=200)
+    else:
+        None
