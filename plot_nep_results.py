@@ -21,7 +21,7 @@ files = ['loss.out', 'energy_train.out', 'energy_test.out',
          'force_train.out', 'force_test.out', 'virial_train.out', 'virial_test.out', 
          'stress_train.out', 'stress_test.out', 'dipole_train.out', 'dipole_test.out', 
          'polarizability_train.out', 'polarizability_test.out',
-         'charge_train.out', 'charge_test.out'] 
+         'charge_train.out', 'charge_test.out', 'descriptor.out'] 
 for file in files:
     if os.path.exists(file):
         vars()[file.split('.')[0]] = np.loadtxt(file)
@@ -38,6 +38,25 @@ def calc_r2_rmse(out_file):
     rmse_origin = np.sqrt(np.mean((out_file[:, :file_columns]-out_file[:, file_columns:])**2))
     rmse_data = rmse_origin * 1000 if rmse_origin < 1 else rmse_origin
     return rmse_origin, rmse_data, r2_data
+
+with open('nep.in', 'r') as file:
+    for line in file:
+        line = line.strip()
+        if 'type' in line:
+            elements = line.split()[2:]
+def get_indices(file):
+    valid_indices = []
+    element_indices = {element: [] for element in elements}
+    with open(f'{file}.xyz', 'r') as file:
+        for line in file:
+            parts = line.strip().split()
+            if len(parts) > 1 and "Lattice" not in line:
+                valid_indices.append(line)
+    for i, line in enumerate(valid_indices):
+        parts = line.split()
+        if parts[0] in element_indices:
+            element_indices[parts[0]].append(i)
+    return element_indices
 
 dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
 model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
@@ -152,23 +171,8 @@ def plot_diagonal(data):
     pass
 
 def plot_charge():
-    with open('nep.in', 'r') as file:
-        for line in file:
-            line = line.strip()
-            if 'type' in line:
-                elements = line.split()[2:]
     def get_charge(file, charge_data):
-        valid_indices = []
-        element_indices = {element: [] for element in elements}
-        with open(f'{file}.xyz', 'r') as file:
-            for line in file:
-                parts = line.strip().split()
-                if len(parts) > 1 and "Lattice" not in line:
-                    valid_indices.append(line)
-        for i, line in enumerate(valid_indices):
-            parts = line.split()
-            if parts[0] in element_indices:
-                element_indices[parts[0]].append(i)
+        element_indices = get_indices(file)
         element_charges = {element: [] for element in elements}
         for element in elements:
             for idx in element_indices[element]:
@@ -193,6 +197,32 @@ def plot_charge():
     tight_layout()
     pass
 
+def plot_descriptor():
+    from sklearn.decomposition import PCA
+    reducer = PCA(n_components=2)
+    reducer.fit(descriptor)
+    proj = reducer.transform(descriptor)
+    if len(descriptor) == len(energy_train):
+        sc = scatter(proj[:, 0], proj[:, 1], c=energy_train[:,1], cmap='Blues', edgecolor='grey', alpha=0.8)
+        cbar = colorbar(sc, cax=gca().inset_axes([0.75, 0.95, 0.23, 0.03]), orientation='horizontal')
+        cbar.ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        cbar.set_label('E/atom (eV)')
+        title('Descriptors for each structure')
+    elif len(descriptor) == len(force_train):
+        element_descriptors = {element: [] for element in elements}
+        element_indices = get_indices('train')
+        for element in elements:
+            for idx in element_indices[element]:
+                element_descriptors[element].append(proj[idx])
+        for element in elements:
+            scatter([i[0] for i in element_descriptors[element]], [i[1] for i in element_descriptors[element]], edgecolor='grey', alpha=0.8, label=element)
+        legend(frameon=False, fontsize=10, loc='upper right')
+        title('Descriptors for each atom')
+    xlabel('PC1')
+    ylabel('PC2')
+    tight_layout()
+    pass
+
 def plot_diagonals(diag_types, hang, lie, start):
     for i, diag_type in enumerate(diag_types):
         subplot(hang, lie, i+start)
@@ -212,15 +242,17 @@ if os.path.exists('loss.out'):
         if '-1e+06' in open('virial_train.out', 'r').read():
             figure(figsize=(17,5))
             plot_diagonals(diag_types, 1, 2, 1)
+            savefig('nep-ef-diagonals.png', dpi=200)
         elif not os.path.exists('stress_train.out'):
             diag_types_v = diag_types + [type_vs[0]]
             figure(figsize=(16.5,5))
             plot_diagonals(diag_types_v, 1, 3, 1)
+            savefig('nep-efv-diagonals.png', dpi=200)
         else:
             figure(figsize=(11,10))
             diag_types_vs = diag_types + type_vs
             plot_diagonals(diag_types_vs, 2, 2, 1)
-        savefig('nep-diagonal.png', dpi=200)
+            savefig('nep-efvs-diagonals.png', dpi=200)
     if os.path.exists('charge_train.out'):
         figure(figsize=(5.5,5))
         plot_charge()
@@ -237,18 +269,26 @@ else:
         if '-1e+06' in open('virial_train.out', 'r').read():
             figure(figsize=(17,5))
             plot_diagonals(diag_types, 1, 2, 1)
+            savefig('nep-ef-diagonals.png', dpi=200)
         elif not os.path.exists('stress_train.out'):
             diag_types_v = diag_types + [type_vs[0]]
             figure(figsize=(16.5,5))
             plot_diagonals(diag_types_v, 1, 3, 1)
+            savefig('nep-efv-diagonals.png', dpi=200)
         else:
             figure(figsize=(11,10))
             diag_types_vs = diag_types + type_vs
             plot_diagonals(diag_types_vs, 2, 2, 1)
-        savefig('nep-diagonal.png', dpi=200)
+            savefig('nep-efvs-diagonals.png', dpi=200)
     if os.path.exists('charge_train.out'):
         figure(figsize=(5.5,5))
         plot_charge()
         savefig('nep-charge.png', dpi=200)
+    else:
+        None
+    if os.path.exists('descriptor.out'):
+        figure(figsize=(5.5,5))
+        plot_descriptor()
+        savefig('nep-descriptor.png', dpi=200)
     else:
         None
