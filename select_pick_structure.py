@@ -2,16 +2,11 @@ import sys
 import numpy as np
 from pylab import *
 from ase.io import read
-from NepTrain.core.nep import *
 from sklearn.decomposition import PCA
-from scipy.spatial.distance import cdist
 
 xyz_file = "train.xyz"
 nep_name = "nep.txt"
 strucs = read(xyz_file, ":")
-struc_lines = [0]
-for atoms in strucs:
-    struc_lines.append(struc_lines[-1] + len(atoms)+2)
 
 def main():
     if len(sys.argv) < 2:
@@ -23,6 +18,7 @@ if __name__ == "__main__":
     main()
 
 def FarthestPointSample(new_data, now_data=[], min_distance=0.1, min_select=1, max_select=None, metric='euclidean'):
+    from scipy.spatial.distance import cdist
     max_select = max_select or len(new_data)
     to_add = []
     if len(new_data) == 0:
@@ -46,8 +42,25 @@ def pick_points(proj, range_x, range_y):
             pick_strucs.append(i)
     return pick_strucs
 
-nep3=Nep3Calculator(nep_name)
-des = [nep3.get_descriptors(i).mean(0) for i in strucs]
+def get_indices(file):
+    valid_indices = []
+    element_indices = {element: [] for element in elements}
+    with open(f'{file}.xyz', 'r') as file:
+        for line in file:
+            parts = line.strip().split()
+            if len(parts) > 1 and "Lattice" not in line:
+                valid_indices.append(line)
+    for i, line in enumerate(valid_indices):
+        parts = line.split()
+        if parts[0] in element_indices:
+            element_indices[parts[0]].append(i)
+    return element_indices
+
+if os.path.exists('discriptor.out'):
+    des = np.loadtxt('discriptor.out')
+else:
+    nep3=Nep3Calculator(nep_name)
+    des = [nep3.get_descriptors(i).mean(0) for i in strucs]
 reducer = PCA(n_components=2)
 reducer.fit(des)
 proj = reducer.transform(des)
@@ -55,12 +68,39 @@ proj = reducer.transform(des)
 with open(xyz_file, 'r') as file:
     lines = file.readlines()
 if sys.argv[1] == "all":
-    scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff")
+    if os.path.exists('discriptor.out'):
+        with open('nep.in', 'r') as file:
+            for line in file:
+                line = line.strip()
+                if 'type' in line:
+                    elements = line.split()[2:]
+    else:
+        None
+    if len(des) == len(strucs):
+        sc = scatter(proj[:, 0], proj[:, 1], c=energy_train[:,1], cmap='Blues', edgecolor='grey', alpha=0.8)
+        cbar = colorbar(sc, cax=gca().inset_axes([0.75, 0.95, 0.23, 0.03]), orientation='horizontal')
+        cbar.ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        cbar.set_label('E/atom (eV)')
+        title('Descriptors for each structure')
+    else:
+        element_descriptors = {element: [] for element in elements}
+        element_indices = get_indices('train')
+        for element in elements:
+            for idx in element_indices[element]:
+                element_descriptors[element].append(proj[idx])
+        for element in elements:
+            scatter([i[0] for i in element_descriptors[element]], [i[1] for i in element_descriptors[element]], edgecolor='grey', alpha=0.8, label=element)
+        legend(frameon=False, fontsize=10, loc='upper right')
+        title('Descriptors for each atom')
     xlabel('PC1')
     ylabel('PC2')
+    tight_layout()
     savefig("all-points.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "select":
+    struc_lines = [0]
+    for atoms in strucs:
+        struc_lines.append(struc_lines[-1] + len(atoms)+2)
     min_distances = []
     counts = []
     for arg in sys.argv[2:]:
@@ -94,6 +134,9 @@ elif sys.argv[1] == "select":
         savefig(f"select_{select_value}.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "pick":
+    struc_lines = [0]
+    for atoms in strucs:
+        struc_lines.append(struc_lines[-1] + len(atoms)+2)
     picked_proj = set()
     for i in range(2, len(sys.argv), 4):
         x_start, x_end, y_start, y_end = map(float, sys.argv[i:i+4])
@@ -113,4 +156,4 @@ elif sys.argv[1] == "pick":
     scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retained")
     legend()
     savefig("retain-pick.png", dpi=150, bbox_inches='tight')
-    
+
