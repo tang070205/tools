@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import numpy as np
 from pylab import *
 from ase.io import read
@@ -59,6 +59,7 @@ def get_indices(file):
 if os.path.exists('discriptor.out'):
     des = np.loadtxt('discriptor.out')
 else:
+    from NepTrain.core.nep import *
     nep3=Nep3Calculator(nep_name)
     des = [nep3.get_descriptors(i).mean(0) for i in strucs]
 reducer = PCA(n_components=2)
