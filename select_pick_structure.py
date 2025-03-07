@@ -42,10 +42,10 @@ def pick_points(proj, range_x, range_y):
             pick_strucs.append(i)
     return pick_strucs
 
-def get_indices(file):
+def get_indices(xyzfile):
     valid_indices = []
     element_indices = {element: [] for element in elements}
-    with open(f'{file}.xyz', 'r') as file:
+    with open(xyzfile, 'r') as file:
         for line in file:
             parts = line.strip().split()
             if len(parts) > 1 and "Lattice" not in line:
@@ -56,12 +56,34 @@ def get_indices(file):
             element_indices[parts[0]].append(i)
     return element_indices
 
-if os.path.exists('discriptor.out'):
-    des = np.loadtxt('discriptor.out')
-else:
+def get_energies_per_atom(xyzfile):
+    with open(xyzfile, 'r') as file:
+        lines = file.readlines()
+    struc_lines, energies_per_atom = [], []
+    for line in lines:
+        columns = line.strip().split()
+        if len(columns) != 7:
+            struc_lines.append(line)
+    i = 0
+    while i < len(struc_lines):
+        num_atoms_line = struc_lines[i].strip()
+        energy_line = struc_lines[i+1].strip()
+        num_atoms = int(num_atoms_line)
+        energy_value = float(energy_line.split('nergy=')[1].split()[0])
+        energy_per_atom = energy_value / num_atoms
+        energies_per_atom.append(energy_per_atom)
+        i += 2
+    return energies_per_atom
+
+if os.path.exists('descriptor.out'):
+    des = np.loadtxt('descriptor.out')
+elif not os.path.exists('descriptor.out') or (os.path.exists('descriptor.out') and len(strucs) != len(des)):
     from NepTrain.core.nep import *
     nep3=Nep3Calculator(nep_name)
     des = [nep3.get_descriptors(i).mean(0) for i in strucs]
+    with open('descriptor.out', "w") as f:
+        for descriptor in des:
+            f.write(f"{descriptor}\n")
 reducer = PCA(n_components=2)
 reducer.fit(des)
 proj = reducer.transform(des)
@@ -69,15 +91,14 @@ proj = reducer.transform(des)
 with open(xyz_file, 'r') as file:
     lines = file.readlines()
 if sys.argv[1] == "all":
-    if os.path.exists('discriptor.out'):
-        with open('nep.in', 'r') as file:
-            for line in file:
-                line = line.strip()
-                if 'type' in line:
-                    elements = line.split()[2:]
+    if os.path.exists('descriptor.out'):
+        with open(nep_name, 'r') as file:
+            first_line = file.readline().strip()
+            elements = first_line.split()[2:]
     else:
         None
     if len(des) == len(strucs):
+        energy_train = get_energies_per_atom(xyz_file)
         sc = scatter(proj[:, 0], proj[:, 1], c=energy_train[:,1], cmap='Blues', edgecolor='grey', alpha=0.8)
         cbar = colorbar(sc, cax=gca().inset_axes([0.75, 0.95, 0.23, 0.03]), orientation='horizontal')
         cbar.ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
@@ -85,7 +106,7 @@ if sys.argv[1] == "all":
         title('Descriptors for each structure')
     else:
         element_descriptors = {element: [] for element in elements}
-        element_indices = get_indices('train')
+        element_indices = get_indices(xyz_file)
         for element in elements:
             for idx in element_indices[element]:
                 element_descriptors[element].append(proj[idx])
