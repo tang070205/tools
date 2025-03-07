@@ -3,12 +3,13 @@ import os, sys, shutil, subprocess
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: python3 aimd_OUTCAR_xyz2POSCAR.py vasp/abacus <number_of_perturbations>")
+        print("Usage: python3 aimd_OUTCAR_xyz2POSCAR.py <xyz_file> <number_of_perturbations> vasp/abacus")
         sys.exit(1)
 if __name__ == "__main__":
     main()
 
-if sys.argv[1] == 'abacus':
+if sys.argv[3] == 'abacus':
+    import dpdata
     subprocess.run(f"echo '1\n 101\n  175 POSCAR' | atomkit", shell=True)
     ntype = dpdata.System('POSCAR', fmt="vasp/poscar").get_ntypes()
     with open("POSCAR.STRU", 'r') as file:
@@ -19,7 +20,7 @@ else:
 number_structures = int(sys.argv[2])
 original_cwd = os.getcwd()
 
-with open("dump.xyz", "r") as input_file:
+with open(sys.argv[1], "r") as input_file:
     first_line = input_file.readline()
     try:
         structure_lines = int(first_line) + 2
@@ -29,7 +30,7 @@ with open("dump.xyz", "r") as input_file:
     structures_count = total_lines // structure_lines
 
 output_lines = []
-with open("dump.xyz", "r") as input_file:
+with open(sys.argv[1], "r") as input_file:
     lines = input_file.readlines()
     for i in range(number_structures):
         start_index = structure_lines * (structures_count // number_structures * (i+1) - 1)
@@ -47,7 +48,7 @@ def create_train_folders():
         os.makedirs(folder_path)
 
 def split_xyz():
-    with open('dump.xyz', 'r') as file:
+    with open(sys.argv[1], 'r') as file:
         lines = file.readlines()  
     num_groups = len(lines) // structure_lines
     for i in range(num_groups):
@@ -67,7 +68,6 @@ def convert_xyz_to_poscar():
         xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
         write("POSCAR", read(xyz_file, format="extxyz"))
         if sys.argv[1] == 'abacus':
-            import dpdata
             d_poscar = dpdata.System('POSCAR', fmt="vasp/poscar")
             d_poscar.to("abacus/stru", "STRU")
             with open("STRU", 'r') as file:
