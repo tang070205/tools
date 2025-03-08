@@ -219,6 +219,8 @@ def plot_descriptor():
             scatter([i[0] for i in element_descriptors[element]], [i[1] for i in element_descriptors[element]], edgecolor='grey', alpha=0.8, label=element)
         legend(frameon=False, fontsize=10, loc='upper right')
         title('Descriptors for each atom')
+    else:
+        print('The number of descriptors does not match the number of train.xyz structures. Please delete descriptor.out or change the existing descriptor.out file name')
     xlabel('PC1')
     ylabel('PC2')
     tight_layout()
