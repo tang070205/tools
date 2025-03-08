@@ -99,7 +99,7 @@ if sys.argv[1] == "all":
         None
     if len(des) == len(strucs):
         energy_train = get_energies_per_atom(xyz_file)
-        sc = scatter(proj[:, 0], proj[:, 1], c=energy_train[:,1], cmap='Blues', edgecolor='grey', alpha=0.8)
+        sc = scatter(proj[:, 0], proj[:, 1], c=energy_train, cmap='Blues', edgecolor='grey', alpha=0.8)
         cbar = colorbar(sc, cax=gca().inset_axes([0.75, 0.95, 0.23, 0.03]), orientation='horizontal')
         cbar.ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         cbar.set_label('E/atom (eV)')
