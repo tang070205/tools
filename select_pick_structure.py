@@ -101,8 +101,9 @@ if sys.argv[1] == "all":
     if len(des) == len(strucs):
         energy_train = get_energies_per_atom(xyz_file)
         sc = scatter(proj[:, 0], proj[:, 1], c=energy_train, cmap='Blues', edgecolor='grey', alpha=0.8)
-        cbar = colorbar(sc, cax=gca().inset_axes([0.75, 0.95, 0.23, 0.03]), orientation='horizontal')
-        cbar.ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        cbar = colorbar(sc, cax=gca().inset_axes([0.73, 0.95, 0.23, 0.03]), orientation='horizontal')
+        cbar.set_ticks([sc.get_clim()[0], sc.get_clim()[1]])
+        cbar.set_ticklabels(['{:.1f}'.format(sc.get_clim()[0]), '{:.1f}'.format(sc.get_clim()[1])])
         cbar.set_label('E/atom (eV)')
         title('Descriptors for each structure')
     else:
