@@ -83,7 +83,8 @@ elif not os.path.exists('descriptor.out') or (os.path.exists('descriptor.out') a
     des = [nep3.get_descriptors(i).mean(0) for i in strucs]
     with open('descriptor.out', "w") as f:
         for descriptor in des:
-            f.write(f"{descriptor}\n")
+            descriptor_str = " ".join(map(str, descriptor))
+            f.write(f"{descriptor_str}\n")
 reducer = PCA(n_components=2)
 reducer.fit(des)
 proj = reducer.transform(des)
