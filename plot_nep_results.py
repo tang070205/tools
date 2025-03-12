@@ -102,7 +102,7 @@ def plot_diagonal(data):
     pass
 
     units = {'force': 'eV/Å', 'stress': 'GPa', 'energy': 'eV/atom','virial': 'eV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
-    munits = {'force': 'meV/Å', 'stress': 'MPa', 'energy': 'meV/atom','virial': 'meV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
+    munits = {'force': 'meV/Å', 'stress': 'MPa', 'energy': 'meV/atom','virial': 'meV/atom', 'dipole': 'ma.u./atom', 'polarizability': 'ma.u./atom'}
     label_unit = units.get(data, 'unknown unit')
     def get_unit(rmse_origin):
         return munits.get(data, 'unknown unit') if rmse_origin < 1 else units.get(data, 'unknown unit')
