@@ -44,6 +44,7 @@ with open('nep.in', 'r') as file:
         line = line.strip()
         if 'type' in line:
             elements = line.split()[2:]
+        lambda_v = line.split()[1] if 'lambda_v' in line else 0.1
 def get_indices(file):
     valid_indices = []
     element_indices = {element: [] for element in elements}
@@ -69,7 +70,7 @@ def plot_loss():
         else:
             legend([ r'$L_1$', r'$L_2$', f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
     else: 
-        if '-1e+06' in open('virial_train.out', 'r').read():
+        if lambda_v == '0':
             loglog(loss[:, 2:6])
             if os.path.exists('test.xyz'):
                 loglog(loss[:, 7:9])
@@ -243,7 +244,7 @@ if os.path.exists('loss.out'):
         plot_diagonal(f'{model_type}')
         savefig(f'nep-{model_type}.png', dpi=200)
     else:
-        if '-1e+06' in open('virial_train.out', 'r').read():
+        if lambda_v == '0':
             figure(figsize=(17,5))
             plot_diagonals(diag_types, 1, 2, 1)
             savefig('nep-ef-diagonals.png', dpi=200)
@@ -261,8 +262,6 @@ if os.path.exists('loss.out'):
         figure(figsize=(5.5,5))
         plot_charge()
         savefig('nep-charge.png', dpi=200)
-    else:
-        None
 else:
     print('NEP预测')
     if model_type is not None:
@@ -270,7 +269,7 @@ else:
         plot_diagonal(f'{model_type}')
         savefig(f'nep-{model_type}.png', dpi=200)
     else:
-        if '-1e+06' in open('virial_train.out', 'r').read():
+        if lambda_v == '0':
             figure(figsize=(17,5))
             plot_diagonals(diag_types, 1, 2, 1)
             savefig('nep-ef-diagonals.png', dpi=200)
@@ -288,11 +287,8 @@ else:
         figure(figsize=(5.5,5))
         plot_charge()
         savefig('nep-charge.png', dpi=200)
-    else:
-        None
     if os.path.exists('descriptor.out'):
         figure(figsize=(5.5,5))
         plot_descriptor()
         savefig('nep-descriptor.png', dpi=200)
-    else:
-        None
+
