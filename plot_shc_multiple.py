@@ -27,6 +27,10 @@ print('驱动力方向：', dic)
 shc_unanalyzed = np.loadtxt('shc.out')
 shc = np.mean(np.split(shc_unanalyzed, int(sys.argv[1])), axis=0)
 
+def set_tick_params():
+    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+
 l = read('model.xyz').cell.lengths()
 Lx, Ly, Lz = l[0], l[1], l[2]
 V = Lx * Ly * Lz
@@ -62,6 +66,7 @@ ylim([-1, 5])
 gca().set_yticks(linspace(-1,5,7))
 ylabel('K (eV/ps)')
 xlabel('Correlation time (ps)')
+set_tick_params()
 title('(a)')
 
 subplot(2,2,2)
@@ -72,6 +77,7 @@ ylim([0, 200])
 gca().set_yticks(linspace(0,200,5))
 ylabel(r'$\kappa$($\omega$) (W/m/K/THz)')
 xlabel(r'$\nu$ (THz)')
+set_tick_params()
 title('(b)')
 
 subplot(2,2,3)
@@ -82,6 +88,7 @@ ylim([0, 6000])
 gca().set_yticks(linspace(0,6000,7))
 ylabel(r'$\lambda$($\omega$) (nm)')
 xlabel(r'$\nu$ (THz)')
+set_tick_params()
 title('(c)')
 
 subplot(2,2,4)
@@ -91,6 +98,7 @@ ylim([0, 3000])
 gca().set_yticks(linspace(0,3000,7))
 ylabel(r'$\kappa$ (W/m/K)')
 xlabel(r'L ($\mu$m)')
+set_tick_params()
 title('(d)')
 
-savefig('shc.png', dpi=150, bbox_inches='tight')
+savefig('shc-multiple.png', dpi=150, bbox_inches='tight')

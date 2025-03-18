@@ -7,6 +7,10 @@ with open('run.in', 'r') as file:
         if 'compute_hac' in line:
             one_lines = int(line.split()[2])/10
 
+def set_tick_params():
+    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+
 hac = np.loadtxt('hac.out')
 #labels = ['t', 'jxijx', 'jxojx', 'jyijy', 'jyojy', 'jzjz', 'kxi', 'kxo', 'kyi', 'kyo', 'kz']
 num_runs = int(len(hac)/one_lines) #这个可以手动改成确定的数
@@ -32,6 +36,7 @@ xlim([1e-1, 1e3])
 ylim([1e-4, 1])
 xlabel('Correlation Time (ps)')
 ylabel('Normalized HAC')
+set_tick_params()
 title('(a)')
 
 subplot(2,2,2)
@@ -44,6 +49,7 @@ ylim([0, 1500])
 gca().set_yticks(linspace(0,1500,4))
 xlabel('Correlation Time (ps)')
 ylabel(r'$\kappa^{in}$ (W/m/K)')
+set_tick_params()
 title('(b)')
 
 subplot(2,2,3)
@@ -56,6 +62,7 @@ ylim([0, 4000])
 gca().set_yticks(linspace(0,4000,5))
 xlabel('Correlation Time (ps)')
 ylabel(r'$\kappa^{out}$ (W/m/K)')
+set_tick_params()
 title('(c)')
 
 subplot(2,2,4)
@@ -68,6 +75,7 @@ ylim([0, 4000])
 gca().set_yticks(linspace(0,4000,5))
 xlabel('Correlation Time (ps)')
 ylabel(r'$\kappa$ (W/m/K)')
+set_tick_params()
 title('(d)')
 
-savefig('emd.png', dpi=150, bbox_inches='tight')
+savefig('emd-multiple.png', dpi=150, bbox_inches='tight')

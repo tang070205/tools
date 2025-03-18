@@ -30,6 +30,10 @@ file_datas = np.split(kappa, int(sys.argv[1]))
 t = np.arange(1, one_lines + 1) * 0.001 * time_step
 xlimit = int(run_time / 1000000 * time_step)
 
+def set_tick_params():
+    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     if scipy_version < '1.14':
         from scipy.integrate import cumtrapz
@@ -56,6 +60,7 @@ if dic == 'x' or dic == 'y':
         plt.gca().set_yticks(linspace(y_start, y_end, 5))
         plt.xlabel('time (ns)')
         plt.ylabel(ylabel)
+        set_tick_params()
         plt.title(f'({title_tag})')
 
     if dic == 'x':
@@ -79,9 +84,10 @@ if dic == 'x' or dic == 'y':
     plt.gca().set_yticks(linspace(-50, 200, 7))
     plt.xlabel('time (ns)')
     plt.ylabel(r'$\kappa_{total}$ W/m/K')
+    set_tick_params()
     plt.title('(c)')
     plt.legend(['in', 'out', 'total'])
-    plt.savefig(f'hnemd-{dic}.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'hnemd-{dic}-multiple.png', dpi=150, bbox_inches='tight')
 
 elif dic == 'z':
     plt.figure(figsize=(5, 4))
@@ -96,6 +102,7 @@ elif dic == 'z':
     plt.gca().set_yticks(linspace(0, 4000, 5))
     plt.xlabel('time (ns)')
     plt.ylabel(r'$\kappa_{z}$ (W/m/K)')
+    set_tick_params()
 
-    plt.savefig('hnemd-z.png', dpi=150, bbox_inches='tight')
+    plt.savefig('hnemd-z-multiple.png', dpi=150, bbox_inches='tight')
 

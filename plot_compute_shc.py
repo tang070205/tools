@@ -32,6 +32,10 @@ struc.arrays["group"] = np.array(group_id)
 
 write("model.xyz", struc)
 
+def set_tick_params():
+    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+
 with open('run.in', 'r') as file:
     for line in file:
         line = line.strip()
@@ -68,6 +72,7 @@ ylim([T-delta_T, T+delta_T])
 gca().set_yticks(linspace(T-delta_T,T+delta_T,3))
 xlabel('group index')
 ylabel('T (K)')
+set_tick_params()
 title('(a)')
 
 subplot(1,2,2)
@@ -80,6 +85,7 @@ ylim([-10, 10])
 gca().set_yticks(linspace(-10,10,5))
 xlabel('t (ns)')
 ylabel('Heat (keV)')
+set_tick_params()
 title('(b)')
 
 savefig('compute.png', dpi=150, bbox_inches='tight')
@@ -108,6 +114,7 @@ ylim([-4, 10])
 gca().set_yticks(linspace(-4,10,9))
 ylabel('K (eV/ps)')
 xlabel('Correlation time (ps)')
+set_tick_params()
 title('(a)')
 
 subplot(1,2,2)
@@ -118,6 +125,7 @@ ylim([0, 0.35])
 gca().set_yticks(linspace(0,0.35,8))
 ylabel(r'$G$($\omega$) (GW/m$^2$/K/THz)')
 xlabel(r'$\omega$/2$\pi$ (THz)')
+set_tick_params()
 title('(b)')
 
 savefig('shc.png', dpi=150, bbox_inches='tight')

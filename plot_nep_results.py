@@ -26,6 +26,9 @@ for file in files:
     if os.path.exists(file):
         vars()[file.split('.')[0]] = np.loadtxt(file)
 
+def set_tick_params():
+    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+    tick_params(axis='y', which='both', direction='in', left=True, right=True)
 def get_counts2two(out_file):
     file_nums = int(out_file.shape[1]//2)
     new_nep, new_dft = out_file[:, :file_nums].flatten(), out_file[:, file_nums:].flatten()
@@ -84,8 +87,7 @@ def plot_loss():
                 legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test'], ncol=2, frameon=False, fontsize=8, loc='lower left')
             else:
                 legend([r'$L_1$', r'$L_2$', 'Energy', 'Force', 'Virial'], ncol=5, frameon=False, fontsize=8, loc='upper right')
-    tick_params(axis='x', which='both', direction='in', bottom=True)
-    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+    set_tick_params()
     xlabel('Generation/100')
     ylabel('Loss')
     tight_layout()
@@ -164,8 +166,7 @@ def plot_diagonal(data):
         xlim(range_min, range_max)
         ylim(range_min, range_max)
     plot(linspace(range_min, range_max), linspace(range_min, range_max), '-')
-    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
-    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+    set_tick_params()
     xlabel(f"DFT {data} ({label_unit})")
     ylabel(f"NEP {data} ({label_unit})")
     tight_layout()
@@ -191,11 +192,10 @@ def plot_charge():
             sns.histplot(element_charges_train[element], bins=500, alpha=0.6, label=f'{element}-train', kde=True, line_kws={'lw': 1})
             sns.histplot(element_charges_test[element], bins=500, alpha=0.6, label=f'{element}-test', kde=True, line_kws={'lw': 1})
 
-    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
-    tick_params(axis='y', which='both', direction='in', left=True, right=True)
     legend(frameon=False, fontsize=10, loc='upper right')
     xlabel('Charge')
     ylabel('Frequency')
+    set_tick_params()
     tight_layout()
     pass
 
@@ -225,6 +225,7 @@ def plot_descriptor():
         print('The number of descriptors does not match the number of train.xyz structures. Please delete descriptor.out or change the existing descriptor.out file name')
     xlabel('PC1')
     ylabel('PC2')
+    set_tick_params()
     tight_layout()
     pass
 
@@ -291,4 +292,3 @@ else:
         figure(figsize=(5.5,5))
         plot_descriptor()
         savefig('nep-descriptor.png', dpi=200)
-
