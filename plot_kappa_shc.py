@@ -1,8 +1,7 @@
-import sys, subprocess
 import numpy as np
 from pylab import *
 from ase.io import read,write
-import importlib.metadata
+import subprocess, importlib.metadata
 scipy_version = importlib.metadata.version('scipy')
 
 uc = read('POSCAR')
@@ -36,6 +35,10 @@ kappa = np.loadtxt('kappa.out')
 t = np.arange(1, len(kappa) + 1) * 0.001 
 xlimit = int(run_time / 1000000)
 
+def set_tick_params():
+    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     if scipy_version < '1.14':
         from scipy.integrate import cumtrapz
@@ -64,6 +67,7 @@ if dic == 'x' or dic == 'y':
     gca().set_yticks(linspace(0,1000,6))
     xlabel('time (ns)')
     ylabel(r'$\kappa_{in}$ W/m/K')
+    set_tick_params()
     title('(a)')
 
     subplot(1,3,2)
@@ -75,6 +79,7 @@ if dic == 'x' or dic == 'y':
     gca().set_yticks(linspace(0,1000,6))
     xlabel('time (ns)')
     ylabel(r'$\kappa_{out}$ (W/m/K)')
+    set_tick_params()
     title('(b)')
 
     subplot(1,3,3)
@@ -88,6 +93,7 @@ if dic == 'x' or dic == 'y':
     xlabel('time (ns)')
     ylabel(r'$\kappa$ (W/m/K)')
     legend(['in', 'out', 'total'])
+    set_tick_params()
     title('(c)')
 else:
     figure(figsize=(5,5))
@@ -98,6 +104,7 @@ else:
     gca().set_yticks(linspace(0,1000,6))
     xlabel('time (ns)')
     ylabel(r'$\kappa$ (W/m/K)')
+    set_tick_params()
 
 savefig('hnemd.png', dpi=150, bbox_inches='tight')
 
@@ -126,7 +133,7 @@ for i, el in enumerate(length):
 
 figure(figsize=(12,10))
 subplot(2,2,1)
-L = Lx if dic == 'x' else Ly if dic == 'y' else Lz
+L = l[0] if dic == 'x' else l[1] if dic == 'y' else l[2]
 plot(shc_t, shc_K/L, linewidth=3)
 xlim([-max_corr_t, max_corr_t])
 gca().set_xticks(linspace(-max_corr_t, max_corr_t, 5))
@@ -134,6 +141,7 @@ ylim([-1, 5])
 gca().set_yticks(linspace(-1,5,7))
 ylabel('K (eV/ps)')
 xlabel('Correlation time (ps)')
+set_tick_params()
 title('(a)')
 
 subplot(2,2,2)
@@ -144,6 +152,7 @@ ylim([0, 200])
 gca().set_yticks(linspace(0,200,5))
 ylabel(r'$\kappa$($\omega$) (W/m/K/THz)')
 xlabel(r'$\nu$ (THz)')
+set_tick_params()
 title('(b)')
 
 subplot(2,2,3)
@@ -154,6 +163,7 @@ ylim([0, 6000])
 gca().set_yticks(linspace(0,6000,7))
 ylabel(r'$\lambda$($\omega$) (nm)')
 xlabel(r'$\nu$ (THz)')
+set_tick_params()
 title('(c)')
 
 subplot(2,2,4)
@@ -163,6 +173,7 @@ ylim([0, 3000])
 gca().set_yticks(linspace(0,3000,7))
 ylabel(r'$\kappa$ (W/m/K)')
 xlabel(r'L ($\mu$m)')
+set_tick_params()
 title('(d)')
 
 savefig('shc.png', dpi=150, bbox_inches='tight')
