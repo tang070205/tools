@@ -2,7 +2,6 @@ import os
 import numpy as np
 from pylab import *
 from ase.io import read,write
-from matplotlib.gridspec import GridSpec
 
 cx,cy,cz = 20, 20, 1   # 超胞参数
 npoints = 400   
@@ -92,6 +91,8 @@ gca().set_xticklabels([r'$\Gamma$', 'M', 'K', r'$\Gamma$'])
 ylim([0, 30])
 gca().set_yticks(linspace(0,30,7))
 ylabel(r'$\nu$ (THz)',fontsize=15)
+tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+tick_params(axis='y', which='both', direction='in', left=True, right=True)
 if os.path.exists('phonon.out'):
     legend(['DFT', 'NEP'])
 else:
