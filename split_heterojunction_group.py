@@ -39,7 +39,8 @@ split2 = split_group(group_cyclical_2, ucl2)
 split = split1
 #split[-1] = split1[-1] + split2[0]
 split.extend(split2[0:]) #同上
-split = [-1] + list(np.cumsum(split))
+split = [0] + list(np.cumsum(split))
+split[:-1] = [x - 0.001 for x in split[:-1]]
 print("direction boundaries:", [round(l,2) for l in split])
 print("atoms per group:", ncounts)
 
@@ -47,7 +48,7 @@ group_id = []
 for atom in struc:
     n = atom.position[-3] if dic == 'x' else atom.position[-2] if dic == 'y' else atom.position[-1]
     for i in range(len(group_cyclical_1) + len(group_cyclical_2)): #如果想要界面在一组里，range()里面要减1
-        if n > split[i] and n < split[i + 1]:
+        if n >= split[i] and n < split[i + 1]:
             group_index = i
     group_id.append(group_index)
 struc.arrays["group"] = np.array(group_id)
