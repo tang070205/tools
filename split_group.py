@@ -14,7 +14,8 @@ def split_group(input_list, ucl):
     return [n * ucl for n in input_list]
 ncounts = [natoms * count for count in group_cyclical]
 split = split_group(group_cyclical, ucl)
-split = [-1] + list(np.cumsum(split))
+split = [0] + list(np.cumsum(split))
+split[:-1] = [x - 0.001 for x in split[:-1]]
 print("direction boundaries:", [round(l,2) for l in split])
 print("atoms per group:", ncounts)
 
@@ -22,7 +23,7 @@ group_id = []
 for atom in struc:
     n = atom.position[-3] if dic == 'x' else atom.position[-2] if dic == 'y' else atom.position[-1]
     for i in range(len(group_cyclical)):
-        if n > split[i] and n < split[i + 1]:
+        if n >= split[i] and n < split[i + 1]:
             group_index = i
     group_id.append(group_index)
 struc.arrays["group"] = np.array(group_id)
