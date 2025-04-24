@@ -41,16 +41,15 @@ for ((i=1; i<${#mdstep_lines[@]}; i++)); do
     sed -n "${start_line},${end_line}p" MD_dump > temp.file
     echo "$syst_numb_atom" >> "$writ_dire/$writ_file"
     latt=$(grep -A 3 "LATTICE_VECTORS" temp.file | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i}}' |xargs)
+    conversion_value=$(echo $latt | awk '{a1=$1; a2=$2; a3=$3; b1=$4; b2=$5; b3=$6; c1=$7; c2=$8; c3=$9;
+        V=a1*(b2*c3 - b3*c2) + a2*(b3*c1 - b1*c3) + a3*(b1*c2 - b2*c1); if (V < 0) V=-V; printf "%.8f", V/1602.1766208}')
     if [[ $viri_logi -eq 1 ]]; then
         viri=$(grep -A 3 "VIRIAL (kbar)" temp.file | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i * '$conversion_value'}}' |xargs)
         echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Energy=$ener Virial=\"$viri\" pbc=\"T T T\" Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
     else
         echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Energy=$ener Properties=species:S:1:pos:R:3:forces:R:3 pbc=\"T T T\"" >> "$writ_dire/$writ_file"
     fi
-    grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{print $2}' >$writ_dire/symb.tem
-    grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{for (i=3; i<=8; i++) printf "%.8f ", $i; printf "\n"}' > $writ_dire/posi_force.tem
-    paste $writ_dire/symb.tem $writ_dire/posi_force.tem >> $writ_dire/$writ_file
-    #grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{print $2,$3,$4,$5,$6,$7,$8}' >$writ_dire/$writ_file
+    grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{print $2,$3,$4,$5,$6,$7,$8}' >$writ_dire/$writ_file
     rm -f $writ_dire/*.tem
     echo -ne "Process: ${i}/${N_counts}\r"
     
