@@ -24,37 +24,45 @@ rm -rf $writ_dire; mkdir $writ_dire
 configuration=$(pwd | awk -F'/' '{print $(NF-2)"/"$(NF-1)"/"$NF}')
 syst_numb_atom=$(grep "TOTAL ATOM NUMBER" running_md.log |awk '{print $5}')
 ener_values=($(grep 'etot' running_md.log |awk '{print $4}'))
-if [[ $viri_logi -eq 1 ]]; then
-    mdstep_lines=($(grep -n 'MDSTEP' MD_dump | awk -F: '{print $1+12+'$syst_numb_atom'}'))
-else
-    mdstep_lines=($(grep -n 'MDSTEP' MD_dump | awk -F: '{print $1+9+'$syst_numb_atom'}'))
-fi
-conversion_value=$(grep "Volume (A^3)" running_md.log |awk '{print $4/1602.1766208}')
-N_counts=$(( ${#mdstep_lines[@]} - 1 ))
+scf_lines=($(grep -n 'STEP OF MOLECULAR DYNAMICS' running_md.log | awk -F: '{print $1}'))
+scf_last=$(wc -l < running_md.log)
+scf_lines+=($scf_last)
+scf_nmax=$(grep 'scf_nmax' INPUT | awk '{print $2}')
+mdstep_lines=($(grep -n 'MDSTEP' MD_dump | awk -F: '{print $1}'))
+mdstep_last=$(wc -l < MD_dump)
+mdstep_lines+=($mdstep_last)
+N_counts=$(( ${#mdstep_lines[@]} - 2 ))
 
 
-for ((i=1; i<${#mdstep_lines[@]}; i++)); do
-    start_line=${mdstep_lines[i-1]}
-    end_line=${mdstep_lines[i]}
+for ((i=1; i<$(( ${#mdstep_lines[@]} - 1 )); i++)); do
     ener=${ener_values[i]}
 
-    sed -n "${start_line},${end_line}p" MD_dump > temp.file
+    scf_start=${scf_lines[i]}
+    scf_end=${scf_lines[i+1]}
+    scf_act=$(sed -n "${scf_start},${scf_end}p" running_md.log | grep -c "ALGORITHM")
+    if [ "$scf_act" -eq "$scf_nmax" ]; then
+        echo "Skipping the $i structure due to non convergence"
+        echo -ne "Process: ${i}/${N_counts}\r"
+        continue
+    fi
+
+    md_start=${mdstep_lines[i]}
+    md_end=${mdstep_lines[i+1]}
+    sed -n "${md_start},${md_end}p" MD_dump > temp.file
     echo "$syst_numb_atom" >> "$writ_dire/$writ_file"
     latt=$(grep -A 3 "LATTICE_VECTORS" temp.file | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i}}' |xargs)
-    conversion_value=$(echo $latt | awk '{a1=$1; a2=$2; a3=$3; b1=$4; b2=$5; b3=$6; c1=$7; c2=$8; c3=$9;
+    conversion_value=$(echo "$latt" | awk '{a1=$1; a2=$2; a3=$3; b1=$4; b2=$5; b3=$6; c1=$7; c2=$8; c3=$9;
         V=a1*(b2*c3 - b3*c2) + a2*(b3*c1 - b1*c3) + a3*(b1*c2 - b2*c1); if (V < 0) V=-V; printf "%.8f", V/1602.1766208}')
     if [[ $viri_logi -eq 1 ]]; then
         viri=$(grep -A 3 "VIRIAL (kbar)" temp.file | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i * '$conversion_value'}}' |xargs)
-        echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Energy=$ener Virial=\"$viri\" pbc=\"T T T\" Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
+        echo "Energy=$ener Lattice=\"$latt\" Virial=\"$viri\" Config_type=$configuration-$i Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
     else
-        echo "Config_type=$configuration Weight=1.0 Lattice=\"$latt\" Energy=$ener Properties=species:S:1:pos:R:3:forces:R:3 pbc=\"T T T\"" >> "$writ_dire/$writ_file"
+        echo "Energy=$ener Lattice=\"$latt\" Config_type=$configuration-$i Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
     fi
-    grep -A $(($syst_numb_atom)) "INDEX" temp.file | tail -n $syst_numb_atom | awk '{print $2,$3,$4,$5,$6,$7,$8}' >$writ_dire/$writ_file
-    rm -f $writ_dire/*.tem
+    grep -A $syst_numb_atom "INDEX" temp.file | tail -n $syst_numb_atom | awk '{print $2,$3,$4,$5,$6,$7,$8}' >> $writ_dire/$writ_file
     echo -ne "Process: ${i}/${N_counts}\r"
-    
+    rm -f temp.file
 done
-rm -f temp.file
 
 echo
 dos2unix "$writ_dire/$writ_file"
