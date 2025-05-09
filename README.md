@@ -33,6 +33,7 @@ plot_nep_results.py is used to draw the nep output file for training and predict
 ![nep-loss](https://github.com/user-attachments/assets/a7cf843b-dd83-4ae5-8a3d-24d57076fb3b)![nep-efvs-diagonals](https://github.com/user-attachments/assets/2c356661-91fb-4a4c-bbb5-ca97231adce7)![nep-descriptor](https://github.com/user-attachments/assets/796ea239-ca51-4894-9b03-00333af0f48a)![nep-descriptor-peratom](https://github.com/user-attachments/assets/095992b6-567c-4b8b-a6af-a33ad57f2f65)
 
 plot_shc_multiple.py is a graph that calculates the shc method multiple times using the GPUMD software package.
+![shc](https://github.com/user-attachments/assets/473b0b46-1b33-4875-a2a0-b750f699cea6)
 
 select_pick_structure.py is a drawing script that performs farthest point sampling based on descriptors and reduces dimensionality using PCA.
 ![select_200](https://github.com/user-attachments/assets/79a50d55-a471-4e6e-8528-f7e6078901f6)
