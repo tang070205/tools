@@ -98,3 +98,17 @@ if os.path.exists('phonon.out'):
 else:
     legend(['NEP'])
 savefig('phonon.png', dpi=150, bbox_inches='tight')
+
+group_velocity = np.gradient(nu, whole_kpaths, axis=0)
+figure(figsize=(9, 8))
+plot(nu.flatten(), group_velocity.flatten()/10, '.')
+xlim([0, 35])
+gca().set_xticks(linspace(0, 35, 8))
+ylim([0, 20])
+gca().set_yticks(linspace(0, 20, 6))
+xlabel(r'$\nu$ (THz)', fontsize=15)
+ylabel(r'Group Velocity (km/s)', fontsize=15)
+tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+tick_params(axis='y', which='both', direction='in', left=True, right=True)
+savefig('phonon_with_group_velocity.png', dpi=150, bbox_inches='tight')
+
