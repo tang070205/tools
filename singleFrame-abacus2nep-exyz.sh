@@ -32,29 +32,27 @@ for i in `find -L "$read_dire" -name "running_scf.log"`; do
 
     syst_numb_atom=$(grep "TOTAL ATOM NUMBER" "$i" | awk '{print $5}')
     echo "$syst_numb_atom" >> "$writ_dire/$writ_file"
-    latt=$(grep -A 3 "Lattice vectors" "$i" | tail -n 3 | sed 's/+//g' | awk '{ for (i=1; i<=NF; i++) printf "%.8f ", $i}')
+    latt=$(grep -A 3 "LATTICE_VECTORS" "$(dirname "$i")/../STRU" | tail -n 3 | awk '{ for (i=1; i<=NF; i++) printf "%.10f ", $i}')
     ener=$(grep "FINAL_ETOT_IS" "$i" | awk '{printf "%.6f\n", $2 - '$syst_numb_atom' * '$isol_ener'}')
 
     if [ "$viri_logi" -eq 1 ]; then
         conversion_value=$(grep "Volume (A^3)" "$i" | awk '{print $4/1602.1766208}')
-        viri=$(grep -A 4 "TOTAL-STRESS" "$i" | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.8f ", $i * '$conversion_value'}}' | xargs)
+        viri=$(grep -A 4 "TOTAL-STRESS" "$i" | tail -n 3 | awk '{for (i = 1; i <= NF; i++) {printf "%.10f ", $i * '$conversion_value'}}' | xargs)
         echo "Energy=$ener Lattice=\"$latt\" Virial=\"$viri\" Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
     else
         echo "Energy=$ener Lattice=\"$latt\" Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
     fi
 
     if grep -q "taud" "$i"; then
-        cell_a=$(grep "_cell_length_a" "$(dirname "$i")/STRU.cif" | awk '{print $2}')
-        cell_b=$(grep "_cell_length_b" "$(dirname "$i")/STRU.cif" | awk '{print $2}')
-        cell_c=$(grep "_cell_length_c" "$(dirname "$i")/STRU.cif" | awk '{print $2}')
-        grep "taud" "$i" | awk '{printf "%.8f %.8f %.8f\n", $2*'$cell_a', $3*'$cell_b', $4*'$cell_c'}' > "$writ_dire/position.tem"
+        grep "taud" "$i" | awk -v l="$latt" '{split(l,v," "); printf "%.10f %.10f %.10f\n", $2*v[1]+$3*v[4]+$4*v[7], $2*v[2]+$3*v[5]+$4*v[8], $2*v[3]+$3*v[6]+$4*v[9]}' > "$writ_dire/position.tem"
     else
-        grep "tauc" "$i" | awk '{printf "%.8f %.8f %.8f\n", $2, $3, $4}' > "$writ_dire/position.tem"
+        grep "tauc" "$i" | awk '{printf "%.10f %.10f %.10f\n", $2, $3, $4}' > "$writ_dire/position.tem"
     fi
 
     grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" "$i" | tail -n "$syst_numb_atom" | awk '{print $1}' | sed 's/[0-9]//g' >> "$writ_dire/symb.tem"
-    grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" "$i" | tail -n "$syst_numb_atom" | awk '{printf "%.8f %.8f %.8f\n", $2,$3,$4}' > "$writ_dire/force.tem"
-    paste "$writ_dire/symb.tem" "$writ_dire/position.tem" "$writ_dire/force.tem" >> "$writ_dire/$writ_file"
+    grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" "$i" | tail -n "$syst_numb_atom" | awk '{printf "%.10f %.10f %.10f\n", $2,$3,$4}' > "$writ_dire/force.tem"
+    paste -d'	    ' "$writ_dire/symb.tem" "$writ_dire/position.tem" "$writ_dire/force.tem" >> "$writ_dire/$writ_file"
+
 
     rm -f "$writ_dire"/*.tem
     echo -ne "Progress: $N_count/$N_case \r"
