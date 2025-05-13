@@ -1,16 +1,14 @@
-import sys, subprocess
 import numpy as np
 from pylab import *
 from ase.io import read, write
 
+dic = 'x' #这里修改分组方向
 uc = read('POSCAR') 
 cx, cy, cz = 52, 30, 1
+group_cycl = [9,20,1,1,1,20] #每组的周期数
+
 struc = uc* (cx, cy, cz)
 struc.set_pbc([True, True, False])
-l = struc.cell.lengths()
-
-dic = 'x' #这里修改分组方向
-group_cycl = [9,20,1,1,1,20] #每组的周期数
 ucl = uc.cell[0][0] if dic == 'x' else uc.cell[1][1] if dic == 'y' else uc.cell[2][2]
 natoms = len(uc)*cy*cz if dic == 'x' else len(uc)*cx*cz if dic == 'y' else len(uc)*cy*cx
 def split_group(input_list, ucl):
@@ -40,35 +38,36 @@ def set_tick_params():
 with open('run.in', 'r') as file:
     for line in file:
         line = line.strip()
-        if 'time_step' in line:
+        if 'dump_thermo' not in line:
+            print("请在run.in平衡阶段中添加dump_thermo命令")
+        elif 'time_step' in line:
             time_step = float(line.split()[1])
         elif 'heat_lan' in line:
             T = int(line.split()[2])
             delta_T = int(line.split()[4])
-            group_start = int(line.split()[5])
-            group_end = int(line.split()[6])
+            group_start,group_end = int(line.split()[5]), int(line.split()[6])
+        elif 'temperature' or 'potential' or 'force' or 'virial' or 'jp' or 'jk' or 'momentum' in line:
+            Ns = int(line.split()[3])*int(line.split()[2])
         elif 'compute_shc' in line:
             num_corr_points = int(line.split()[2])
-            max_corr_t = int(line.split()[2])/500
-            freq_points = int(line.split()[4])
-            num_omega = int(line.split()[5])
-            group_length = group_cycl[int(line.split()[8])+1]*ucl
+            max_corr_t = int(line.split()[1])*num_corr_points
+            freq_points, num_omega = int(line.split()[4]), int(line.split()[5])
 
 compute = np.loadtxt('compute.out')
 temp = compute[:, group_start:group_end+1]
-Ein = compute[:, -2]
-Eout = compute[:, -1]
+Ein, Eout = compute[:, -2], compute[:, -1]
 temp_ave = np.mean(temp[1+int(len(compute)/2):,:], axis=0)
-Ns_output = subprocess.run("grep 'compute' run.in -m 1 | awk '{print $3*$4}'", shell=True, capture_output=True, text=True)
-Ns = int(Ns_output.stdout.strip())
-t = np.arange(1,len(compute)+1) * Ns/1000000  # ns
+t = np.arange(1,len(compute)+1) * Ns/1000  # ps
 
 figure(figsize=(10,5))
 subplot(1,2,1)
 group_idx = range(group_start, group_end+1)
 plot(group_idx, temp_ave,linewidth=3,marker='o',markersize=10)
 xlim([group_start, group_end])
-gca().set_xticks(group_idx)
+if group_end - group_start > 10:
+    gca().set_xticks(linspace(group_start, group_end, 6))
+else:
+    gca().set_xticks(group_idx)
 ylim([T-delta_T, T+delta_T])
 gca().set_yticks(linspace(T-delta_T,T+delta_T,3))
 xlabel('group index')
@@ -79,7 +78,7 @@ title('(a)')
 subplot(1,2,2)
 plot(t, Ein/1000, 'C3', linewidth=3)
 plot(t, Eout/1000, 'C0', linewidth=3, linestyle='--' )
-compute_t = int(len(compute)*Ns/1000000)
+compute_t = int(len(compute)*Ns/1000)
 xlim([0, compute_t])
 gca().set_xticks(linspace(0,compute_t,6))
 ylim([-10, 10])
@@ -98,8 +97,10 @@ Q = np.mean([Q1, Q2])  # [eV/ps]
 A = l[0]*l[2]/100 if dic == 'y' else l[1]*l[2]/100 if dic == 'x' else l[0]*l[1]/100
 G = 160*Q/deltaT/A  # [GW/m2/K]
 
-shc = np.loadtxt('shc.out')
-V = l[0]*group_length*l[2] if dic == 'y' else group_length*l[1]*l[2] if dic == 'x' else l[0]*l[1]*group_length
+shc, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
+finalx, finaly, finalz = np.mean(thermo[-9, -10:-1], axis=0), np.mean(thermo[-9, -5:-1], axis=0), np.mean(thermo[-9, -1:-1], axis=0)
+group_length = finalx/cx if dic == 'x' else finaly/cy if dic == 'y' else finalz/cz
+V = group_length*finaly*finalz if dic == 'x' else finalx*group_length*finalz if dic == 'y' else finalx*finaly*group_length
 Vvcf = shc[:(2*num_corr_points-1), :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]
 shc_nu = shc[-freq_points:, 0]/(2*pi)
