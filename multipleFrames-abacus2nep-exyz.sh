@@ -2,15 +2,11 @@
 ### HOW TO USE #################################################################################
 ### SYNTAX: ./multipleFrames-abacus2nep-exyz.sh dire_name
 ###     NOTE: 1).'dire_name' is the directory containing running_md.log and MD_dump file.
-### Email: yanzhowang@gmail.com if any questions
-### Modified by Yuwen Zhang
-### Modified by Shunda Chen
-### Modified by Zihan Yan
+### Email: tang070205@proton.me if any questions
 ### Modified by Benrui Tang
 ################################################################################################
 #--- DEFAULT ASSIGNMENTS ---------------------------------------------------------------------
 isol_ener=0     # Shifted energy, specify the value?
-viri_logi=0     # Logical value for virial, true=1, false=0
 #--------------------------------------------------------------------------------------------
 read_dire=$1
 if [ -z "$read_dire" ]; then
@@ -20,6 +16,10 @@ fi
 
 writ_dire="NEPdataset"; writ_file="NEP-dataset.xyz";
 rm -rf $writ_dire; mkdir $writ_dire
+
+if grep -q "VIRIAL (kbar)" "MD_dump"; then
+    viri_logi=1
+fi
 
 configuration=$(pwd | awk -F'/' '{print $(NF-2)"/"$(NF-1)"/"$NF}')
 syst_numb_atom=$(grep "TOTAL ATOM NUMBER" running_md.log |awk '{print $5}')
