@@ -2,7 +2,6 @@ import numpy as np
 from pylab import *
 from ase.io import read,write
 import subprocess, importlib.metadata
-scipy_version = importlib.metadata.version('scipy')
 
 uc = read('POSCAR')
 struc = uc*(10,10,10)
@@ -14,7 +13,9 @@ write("model.xyz", struc)
 with open('run.in', 'r') as file:
     for line in file:
         line = line.strip()
-        if 'time_step' in line:
+        if 'dump_thermo' not in line:
+            print("请在run.in平衡阶段中添加dump_thermo命令")
+        elif 'time_step' in line:
             time_step = float(line.split()[1])
         elif 'nvt' in line:
             T = int(line.split()[2])
@@ -40,6 +41,7 @@ def set_tick_params():
     tick_params(axis='y', which='both', direction='in', left=True, right=True)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
+    scipy_version = importlib.metadata.version('scipy')
     if scipy_version < '1.14':
         from scipy.integrate import cumtrapz
         return cumtrapz(y, x, initial=0) / x
@@ -108,9 +110,8 @@ else:
 
 savefig('hnemd.png', dpi=150, bbox_inches='tight')
 
-
-shc = np.loadtxt('shc.out')
-V = l[0]*l[1]*l[2]
+shc, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
+finalx, finaly, finalz = np.mean(thermo[-9, -10:-1], axis=0), np.mean(thermo[-9, -5:-1], axis=0), np.mean(thermo[-9, -1:-1], axis=0)
 Vvcf = shc[:(2*num_corr_points-1), :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]
 shc_nu = shc[-freq_points:, 0]/(2*pi)
@@ -133,7 +134,7 @@ for i, el in enumerate(length):
 
 figure(figsize=(12,10))
 subplot(2,2,1)
-L = l[0] if dic == 'x' else l[1] if dic == 'y' else l[2]
+L = finalx if dic == 'x' else finaly if dic == 'y' else finalz
 plot(shc_t, shc_K/L, linewidth=3)
 xlim([-max_corr_t, max_corr_t])
 gca().set_xticks(linspace(-max_corr_t, max_corr_t, 5))
