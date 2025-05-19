@@ -37,9 +37,26 @@ for i in `find -L "$read_dire" -name "running_scf.log"`; do
     continue
     fi
 
+    ase_version=$(pip list | grep ase) && ase_available="yes" || ase_available="no"
+    if [ "$ase_available" == "yes" ]; then
+        python3 "$py_file" "$(dirname "$i")/STRU.cif" "$writ_dire/position.tem"
+        latt=$(python3 -c "from ase.io import read; atoms = read('$(dirname "$i")/STRU.cif'); print(' '.join(['{:.10f}'.format(x) for x in atoms.cell.flatten()]))")
+    else
+        if [ -f "$(dirname "$i")/../STRU" ]; then
+            stru_file_path="$(dirname "$i")/../STRU"
+        else
+            stru_file_path=$(grep 'stru_file' INPUT | awk '{print $2}')
+        fi
+        latt=$(grep -A 3 "LATTICE_VECTORS" "$stru_file_path" | tail -n 3 | awk '{ for (i=1; i<=NF; i++) printf "%.10f ", $i}')
+        if grep -q "taud" "$i"; then
+            grep "taud" "$i" | awk -v l="$latt" '{split(l,v," "); printf "%.10f %.10f %.10f\n", $2*v[1]+$3*v[4]+$4*v[7], $2*v[2]+$3*v[5]+$4*v[8], $2*v[3]+$3*v[6]+$4*v[9]}' > "$writ_dire/position.tem"
+        else
+            grep "tauc" "$i" | awk '{printf "%.10f %.10f %.10f\n", $2, $3, $4}' > "$writ_dire/position.tem"
+        fi
+    fi
+
     syst_numb_atom=$(grep "TOTAL ATOM NUMBER" "$i" | awk '{print $5}')
     echo "$syst_numb_atom" >> "$writ_dire/$writ_file"
-    latt=$(grep -A 3 "LATTICE_VECTORS" "$(dirname "$i")/../STRU" | tail -n 3 | awk '{ for (i=1; i<=NF; i++) printf "%.10f ", $i}')
     ener=$(grep "FINAL_ETOT_IS" "$i" | awk '{printf "%.6f\n", $2 - '$syst_numb_atom' * '$isol_ener'}')
 
     if [ "$viri_logi" -eq 1 ]; then
@@ -50,19 +67,8 @@ for i in `find -L "$read_dire" -name "running_scf.log"`; do
         echo "Energy=$ener Lattice=\"$latt\" Config_type=$configuration Weight=1.0 Properties=species:S:1:pos:R:3:forces:R:3" >> "$writ_dire/$writ_file"
     fi
 
-    ase_version=$(ase --version 2>/dev/null) && ase_available="yes" || ase_available="no"
-    if [ "$ase_available" == "yes" ]; then
-        python3 "$py_file" "$(dirname "$i")/STRU.cif" "$writ_dire/position.tem"
-    else
-        if grep -q "taud" "$i"; then
-            grep "taud" "$i" | awk -v l="$latt" '{split(l,v," "); printf "%.10f %.10f %.10f\n", $2*v[1]+$3*v[4]+$4*v[7], $2*v[2]+$3*v[5]+$4*v[8], $2*v[3]+$3*v[6]+$4*v[9]}' > "$writ_dire/position.tem"
-        else
-            grep "tauc" "$i" | awk '{printf "%.10f %.10f %.10f\n", $2, $3, $4}' > "$writ_dire/position.tem"
-        fi
-    fi
-
     grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" "$i" | tail -n "$syst_numb_atom" | awk '{print $1}' | sed 's/[0-9]//g' >> "$writ_dire/symb.tem"
-    grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" "$i" | tail -n "$syst_numb_atom" | awk '{printf "%.10f %.10f %.10f\n", $2,$3,$4}' > "$writ_dire/force.tem"
+    grep -A $(($syst_numb_atom + 1)) "TOTAL-FORCE" "$i" | tail -n "$syst_numb_atom" | awk '{printf "     %.10f %.10f %.10f\n", $2,$3,$4}' > "$writ_dire/force.tem"
     paste -d'	    ' "$writ_dire/symb.tem" "$writ_dire/position.tem" "$writ_dire/force.tem" >> "$writ_dire/$writ_file"
 
     rm -f "$writ_dire"/*.tem
