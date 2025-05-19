@@ -13,9 +13,7 @@ write("model.xyz", struc)
 with open('run.in', 'r') as file:
     for line in file:
         line = line.strip()
-        if 'dump_thermo' not in line:
-            print("请在run.in平衡阶段中添加dump_thermo命令")
-        elif 'time_step' in line:
+        if 'time_step' in line:
             time_step = float(line.split()[1])
         elif 'nvt' in line:
             T = int(line.split()[2])
@@ -29,6 +27,7 @@ with open('run.in', 'r') as file:
             hnemd_sample = int(line.split()[1])
             Fex, Fey,Fez = line.split()[2], line.split()[3], line.split()[4]
 print('驱动力方向：', dic)
+print("请在run.in平衡阶段中添加dump_thermo命令")
 
 run_time_out = subprocess.run("grep -A 10 'compute_hnemd' run.in | grep 'run' | head -n 1 | awk '{print $2}'", shell=True, capture_output=True, text=True)
 run_time = int(run_time_out.stdout.strip())

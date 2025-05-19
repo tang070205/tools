@@ -38,20 +38,19 @@ def set_tick_params():
 with open('run.in', 'r') as file:
     for line in file:
         line = line.strip()
-        if 'dump_thermo' not in line:
-            print("请在run.in平衡阶段中添加dump_thermo命令")
-        elif 'time_step' in line:
+        if 'time_step' in line:
             time_step = float(line.split()[1])
         elif 'heat_lan' in line:
             T = int(line.split()[2])
             delta_T = int(line.split()[4])
             group_start,group_end = int(line.split()[5]), int(line.split()[6])
-        elif 'temperature' or 'potential' or 'force' or 'virial' or 'jp' or 'jk' or 'momentum' in line:
+        elif 'temperature' in line or 'potential' in line or 'force' in line or 'virial' in line or 'jp' in line or 'jk' in line or 'momentum' in line:
             Ns = int(line.split()[3])*int(line.split()[2])
         elif 'compute_shc' in line:
             num_corr_points = int(line.split()[2])
             max_corr_t = int(line.split()[1])*num_corr_points
             freq_points, num_omega = int(line.split()[4]), int(line.split()[5])
+print("请在run.in平衡阶段中添加dump_thermo命令")
 
 compute = np.loadtxt('compute.out')
 temp = compute[:, group_start:group_end+1]

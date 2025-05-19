@@ -31,9 +31,9 @@ def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
     tick_params(axis='y', which='both', direction='in', left=True, right=True)
 
-l = read('model.xyz').cell.lengths()
-Lx, Ly, Lz = l[0], l[1], l[2]
-V = Lx * Ly * Lz
+thermo = np.loadtxt('thermo.out')
+finalx, finaly, finalz = np.mean(thermo[-9, -10:-1], axis=0), np.mean(thermo[-9, -5:-1], axis=0), np.mean(thermo[-9, -1:-1], axis=0)
+V = finalx * finaly * finalz
 Vvcf = shc[:2 * num_corr_points - 1, :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]
 shc_nu = shc[-num_omega:, 0]/(2*pi)
@@ -58,7 +58,7 @@ for i, el in enumerate(length):
 
 figure(figsize=(12,10))
 subplot(2,2,1)
-L = Lx if dic == 'x' else Ly if dic == 'y' else Lz
+L = finalx if dic == 'x' else finaly if dic == 'y' else finalz
 plot(shc_t, shc_K/L, linewidth=3)
 xlim([-max_corr_t, max_corr_t])
 gca().set_xticks(linspace(-max_corr_t, max_corr_t, 5))
