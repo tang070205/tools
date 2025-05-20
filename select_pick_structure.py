@@ -1,7 +1,7 @@
 import sys, os
 import numpy as np
 from pylab import *
-from ase.io import read
+from ase.io import read, write
 
 #xyz_file和des_file顺序要对应，des_file可以没有(用"0"代替)
 nep_name = "nep.txt"
@@ -10,10 +10,11 @@ des_file = ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"
 all_color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 
             '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5', '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5']
 #all_color = ["grey", "MediumVioletRed", "MediumSpringGreen"]
-strucs, des, proj = {}, {}, {}
+strucs, des, proj , all_strucs, all_des = {}, {}, {}, [], []
 for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
     if os.path.exists(xyz):
         strucs[i] = read(xyz, ":")
+    all_strucs.extend(strucs[i])
     else:
         print(f"File {xyz} does not exist.")
         sys.exit(1)
@@ -33,17 +34,24 @@ for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
                     descriptor_str = " ".join(map(str, descriptor))
                     f.write(f"{descriptor_str}\n")
             des[i] = np.loadtxt(f'descriptor-{des_name}.out')
+    all_des.append(des[i])
 
 def main():
     if len(sys.argv) < 3:
         print("methon: pca umap tsne kpca svd isomap se ica fa mds grp srp")
-        print("Currently, only the all(structure descriptor) supports multiple imput xyz files")
+        print("Currently, only the all(structure descriptor) supports multiple xyz files")
         print("Usage: python select_pick_structure.py all <method> # Observe the position of all points")
         print("Usage: python select_pick_structure.py select <method> min_distance_1/max_select_1 min_distance_2/max_select_2 ......")
         print("Usage: python select_pick_structure.py pick <method> x1_start x1_end y1_start y1_end x2_start x2_end y2_start y2_end ......")
         sys.exit(1)
 if __name__ == "__main__":
     main()
+
+def get_structure_lines():
+    struc_lines = [0]
+    for atoms in all_strucs:
+        struc_lines.append(struc_lines[-1] + len(atoms)+2)
+    return struc_lines
 
 def FarthestPointSample(new_data, now_data=[], min_distance=0.1, min_select=1, max_select=None, metric='euclidean'):
     from scipy.spatial.distance import cdist
@@ -103,6 +111,10 @@ def get_energies_per_atom(xyzfile):
         i += 2
     return energies_per_atom
 
+def set_tick_params():
+    tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+    tick_params(axis='y', which='both', direction='in', left=True, right=True)
+
 if sys.argv[2] == "umap":
     from umap import UMAP  # pip install umap-learn
     reducer = UMAP(n_components=2, random_state=42, n_jobs=1)
@@ -142,8 +154,6 @@ elif sys.argv[2] == "srp":
 for i in range(len(des)):
     proj[i] = reducer.fit_transform(des[i])
 
-with open(xyz_file[0], 'r') as file:
-    lines = file.readlines()
 if sys.argv[1] == "all":
     for i in range(len(des)):
         if len(des[i]) == len(strucs[i]):
@@ -170,6 +180,7 @@ if sys.argv[1] == "all":
         cbar.set_label('E/atom (eV)')
         legend(ncol=3, frameon=False, fontsize=5)
         title(f'Descriptors for each structure with {sys.argv[2]}')
+    set_tick_params()
     xlabel('PC1')
     ylabel('PC2')
     tight_layout()
@@ -179,9 +190,7 @@ elif sys.argv[1] == "select":
     if len(xyz_file) > 1:
         print("Currently, only the all usage supports multiple xyz files")
         sys.exit(1)
-    struc_lines = [0]
-    for atoms in strucs[0]:
-        struc_lines.append(struc_lines[-1] + len(atoms)+2)
+    struc_lines = get_structure_lines()
     min_distances = []
     counts = []
     for arg in sys.argv[3:]:
@@ -195,21 +204,16 @@ elif sys.argv[1] == "select":
             select_ids = sorted(set(FarthestPointSample(des[0], min_distance=select_value)))
         else:
             select_ids = sorted(set(FarthestPointSample(des[0], min_distance=0, max_select=select_value)))
-        with open(f"select_{select_value}.xyz", 'w') as file1:
-            for j in range(len(select_ids)):
-                file1.writelines(lines[struc_lines[j]:struc_lines[j+1]])
+        write(f"select_{select_value}.xyz", [strucs[0][j] for j in select_ids], format='extxyz')
         abandon_ids = [i for i in range(len(strucs[0])) if i not in select_ids]
-        with open(f"abandon_{select_value}.xyz", 'w') as file1:
-            for j in range(len(abandon_ids)):
-                file1.writelines(lines[struc_lines[j]:struc_lines[j+1]])
-        
+        write(f"abandon_{select_value}.xyz", [strucs[0][j] for j in abandon_ids], format='extxyz')
         scatter(proj[0][:, 0], proj[0][:, 1], alpha=0.8, c="#8e9cff", label="All")
-        print(proj[0][:5, :])
         selected_proj = array([proj[0][i] for i in select_ids])
         if float(select_value) < 1:
             scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="min_distance={}".format(select_value))
         else:
             scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="select_counts={}".format(select_value))
+        set_tick_params()
         xlabel('PC1')
         ylabel('PC2')
         legend()
@@ -219,26 +223,22 @@ elif sys.argv[1] == "pick":
     if len(xyz_file) > 1:
         print("Currently, only the all usage supports multiple xyz files")
         sys.exit(1)
-    struc_lines = [0]
-    for atoms in strucs:
-        struc_lines.append(struc_lines[-1] + len(atoms)+2)
-    picked_proj = set()
+    struc_lines = get_structure_lines()
+    pick_ids = set()
     for i in range(3, len(sys.argv), 4):
         x_start, x_end, y_start, y_end = map(float, sys.argv[i:i+4])
         range_x = (x_start, x_end)
         range_y = (y_start, y_end)
-        current_proj = pick_points(proj, range_x, range_y)
-        picked_proj.update(current_proj)
-    picked_proj = list(picked_proj)
-    with open("pick.xyz", 'w') as file1:
-        for i in picked_proj:
-            file1.writelines(lines[struc_lines[i]:struc_lines[i+1]])
-    retained_strucs = [i for i in range(len(strucs)) if i not in picked_proj]
-    with open("retain.xyz", 'w') as file1:
-        for i in retained_strucs:
-            file1.writelines(lines[struc_lines[i]:struc_lines[i+1]])
-    scatter(proj[picked_proj, 0], proj[picked_proj, 1], alpha=0.5, color='C1', label="Picked")
-    scatter(proj[retained_proj, 0], proj[retained_proj, 1], alpha=0.5, color='C0', label="Retained")
+        current_ids = pick_points(proj, range_x, range_y)
+        pick_ids.update(current_ids)
+    pick_ids = list(pick_ids)
+    write(f"pick.xyz", [strucs[0][j] for j in pick_ids], format='extxyz')
+    retain_ids = [i for i in range(len(strucs)) if i not in pick_ids]
+    write(f"retain.xyz", [strucs[0][j] for j in retain_ids], format='extxyz')
+    scatter(proj[pick_ids, 0], proj[pick_ids, 1], alpha=0.5, color='C1', label="Pick")
+    scatter(proj[retain_ids, 0], proj[retain_ids, 1], alpha=0.5, color='C0', label="Retain")
+    set_tick_params()
+    xlabel('PC1')
+    ylabel('PC2')
     legend()
     savefig(f"retain-pick-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
-
