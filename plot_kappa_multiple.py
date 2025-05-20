@@ -22,13 +22,12 @@ with open('run.in', 'r') as file:
             dic = 'x' if float(line.split()[2]) > 0 else 'y' if float(line.split()[3]) > 0 else 'z'
 print('驱动力方向：', dic)
 
-run_time_out = subprocess.run("grep -A 10 'compute_hnemd' run.in | grep 'run' | head -n 1 | awk '{print $2}'", shell=True, capture_output=True, text=True)
-run_time = int(run_time_out.stdout.strip())
-one_lines = run_time / hnemd_sample
 kappa = np.loadtxt('kappa.out', max_rows = int(sys.argv[1]) * int(one_lines))
+one_lines = max_rows / int(sys.argv[1])
+run_time = hnemd_sample * time_step * one_lines
 file_datas = np.split(kappa, int(sys.argv[1]))
 t = np.arange(1, one_lines + 1) * 0.001 * time_step
-xlimit = int(run_time / 1000000 * time_step)
+xlimit = int(run_time * 0.001 * time_step)
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -58,7 +57,7 @@ if dic == 'x' or dic == 'y':
         plt.ylim([y_start, y_end])
         plt.gca().set_xticks(linspace(0, xlimit, 6))
         plt.gca().set_yticks(linspace(y_start, y_end, 5))
-        plt.xlabel('time (ns)')
+        plt.xlabel('time (ps)')
         plt.ylabel(ylabel)
         set_tick_params()
         plt.title(f'({title_tag})')
@@ -82,7 +81,7 @@ if dic == 'x' or dic == 'y':
     plt.ylim([-50, 100])
     plt.gca().set_xticks(linspace(0, xlimit, 6))
     plt.gca().set_yticks(linspace(-50, 200, 7))
-    plt.xlabel('time (ns)')
+    plt.xlabel('time (ps)')
     plt.ylabel(r'$\kappa_{total}$ W/m/K')
     set_tick_params()
     plt.title('(c)')
@@ -100,7 +99,7 @@ elif dic == 'z':
     plt.ylim([0, 4000])
     plt.gca().set_xticks(linspace(0, xlimit, 6))
     plt.gca().set_yticks(linspace(0, 4000, 5))
-    plt.xlabel('time (ns)')
+    plt.xlabel('time (ps)')
     plt.ylabel(r'$\kappa_{z}$ (W/m/K)')
     set_tick_params()
 

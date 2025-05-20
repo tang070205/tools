@@ -29,11 +29,10 @@ with open('run.in', 'r') as file:
 print('驱动力方向：', dic)
 print("请在run.in平衡阶段中添加dump_thermo命令")
 
-run_time_out = subprocess.run("grep -A 10 'compute_hnemd' run.in | grep 'run' | head -n 1 | awk '{print $2}'", shell=True, capture_output=True, text=True)
-run_time = int(run_time_out.stdout.strip())
 kappa = np.loadtxt('kappa.out')
-t = np.arange(1, len(kappa) + 1) * 0.001 
-xlimit = int(run_time / 1000000)
+run_time = hnemd_sample * time_step * len(kappa)
+t = np.arange(1, len(kappa) + 1) * 0.001 * time_step
+xlimit = int(run_time * 0.001 * time_step)
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -111,6 +110,7 @@ savefig('hnemd.png', dpi=150, bbox_inches='tight')
 
 shc, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
 finalx, finaly, finalz = np.mean(thermo[-9, -10:-1], axis=0), np.mean(thermo[-9, -5:-1], axis=0), np.mean(thermo[-9, -1:-1], axis=0)
+V = finalx * finaly * finalz
 Vvcf = shc[:(2*num_corr_points-1), :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]
 shc_nu = shc[-freq_points:, 0]/(2*pi)
@@ -118,7 +118,7 @@ Fe = Fex if dic == 'x' else Fey if dic == 'y' else Fez
 shc_kwi = shc[-freq_points:, 1] * 1602.17662 / (float(Fe) * T * V) #convert = 1602.17662
 shc_kwo = shc[-freq_points:, 2] * 1602.17662 / (float(Fe) * T * V)
 shc_kw = shc_kwi + shc_kwo
-shc_K = shc_Ki + shc_Ko
+shc_K = shc_Ki + shc_Ko 
 
 Gc = np.load('Gc.npy')
 lambda_i = (shc_kw/Gc)
