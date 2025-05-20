@@ -14,7 +14,7 @@ strucs, des, proj , all_strucs, all_des = {}, {}, {}, [], []
 for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
     if os.path.exists(xyz):
         strucs[i] = read(xyz, ":")
-    all_strucs.extend(strucs[i])
+        all_strucs.extend(strucs[i])
     else:
         print(f"File {xyz} does not exist.")
         sys.exit(1)
@@ -39,7 +39,6 @@ for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
 def main():
     if len(sys.argv) < 3:
         print("methon: pca umap tsne kpca svd isomap se ica fa mds grp srp")
-        print("Currently, only the all(structure descriptor) supports multiple xyz files")
         print("Usage: python select_pick_structure.py all <method> # Observe the position of all points")
         print("Usage: python select_pick_structure.py select <method> min_distance_1/max_select_1 min_distance_2/max_select_2 ......")
         print("Usage: python select_pick_structure.py pick <method> x1_start x1_end y1_start y1_end x2_start x2_end y2_start y2_end ......")
@@ -187,9 +186,6 @@ if sys.argv[1] == "all":
     savefig(f"all-points-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "select":
-    if len(xyz_file) > 1:
-        print("Currently, only the all usage supports multiple xyz files")
-        sys.exit(1)
     struc_lines = get_structure_lines()
     min_distances = []
     counts = []
@@ -220,9 +216,6 @@ elif sys.argv[1] == "select":
         savefig(f"select-{select_value}-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "pick":
-    if len(xyz_file) > 1:
-        print("Currently, only the all usage supports multiple xyz files")
-        sys.exit(1)
     struc_lines = get_structure_lines()
     pick_ids = set()
     for i in range(3, len(sys.argv), 4):
