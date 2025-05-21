@@ -90,15 +90,15 @@ title('(b)')
 
 savefig('compute.png', dpi=150, bbox_inches='tight')
 
+shc, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
+finalx, finaly, finalz = np.mean(thermo[-10:, -9], axis=0), np.mean(thermo[-10:, -5], axis=0), np.mean(thermo[-10:, -1], axis=0)
 deltaT = temp_ave[0] - temp_ave[-1]  # [K]
 Q1 = (Ein[int(len(compute)/2)] - Ein[-1])/(len(compute)/2)/Ns*1000
 Q2 = (Eout[-1] - Eout[int(len(compute)/2)])/(len(compute)/2)/Ns*1000
 Q = np.mean([Q1, Q2])  # [eV/ps]
-A = l[0]*l[2]/100 if dic == 'y' else l[1]*l[2]/100 if dic == 'x' else l[0]*l[1]/100
+A = finalx*finaly/100 if dic == 'y' else finaly*finalz/100 if dic == 'x' else finalx*finalz/100
 G = 160*Q/deltaT/A  # [GW/m2/K]
 
-shc, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
-finalx, finaly, finalz = np.mean(thermo[-10:, -9], axis=0), np.mean(thermo[-10:, -5], axis=0), np.mean(thermo[-10:, -1], axis=0)
 group_length = finalx/cx if dic == 'x' else finaly/cy if dic == 'y' else finalz/cz
 V = group_length*finaly*finalz if dic == 'x' else finalx*group_length*finalz if dic == 'y' else finalx*finaly*group_length
 Vvcf = shc[:(2*num_corr_points-1), :]
