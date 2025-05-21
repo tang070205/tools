@@ -1,6 +1,15 @@
+import sys
 from pylab import *
 import numpy as np
 import importlib.metadata
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: python plot_kappa_multiple.py #一次")
+        print("Usage: python plot_kappa_multiple.py <number-of-runs> <one-run-time> #多次")
+        sys.exit(1)
+if __name__ == "__main__":
+    main()
 
 with open('run.in', 'r') as file:
     for line in file:
@@ -17,11 +26,9 @@ with open('run.in', 'r') as file:
             num_omega = int(line.split()[5])
         elif 'compute_hnemd' in line:
             hnemd_sample = int(line.split()[1])
-            Fex, Fey,Fez = line.split()[2], line.split()[3], line.split()[4]
+            Fex, Fey, Fez = line.split()[2], line.split()[3], line.split()[4]
 print("请在run.in平衡阶段中添加dump_thermo命令")
 print('驱动力方向：', dic)
-run_time_out = subprocess.run("grep -A 10 'compute_hnemd' run.in | grep 'run' | head -n 1 | awk '{print $2}'", shell=True, capture_output=True, text=True)
-run_time = int(run_time_out.stdout.strip())
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     scipy_version = importlib.metadata.version('scipy')
@@ -32,18 +39,13 @@ def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
         from scipy.integrate import cumulative_trapezoid
         return cumulative_trapezoid(y, x, initial=0) / x 
 
-def kappa_std(kappa, run_num):
-    std = []
-    for i in range(len(kappa)):
-        std.append(np.std(kappa[i]) / sqrt(run_num))
-    return std
-
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
     tick_params(axis='y', which='both', direction='in', left=True, right=True)
 
-output_num = int(run_time / hnemd_sample)
-if len(sys.argv) = 2:
+if len(sys.argv) == 3:
+    run_time = int(sys.argv[2])
+    output_num = int(run_time / hnemd_sample)
     run_num = int(sys.argv[1])
     kappa_raw = np.loadtxt('kappa.out', max_rows = run_num * output_num)
 else:
@@ -59,11 +61,14 @@ for i in range(run_num):
         kappa[:, i] = running_ave(k_run[:,2],t) + running_ave(k_run[:,3],t)
     else:
         kappa[:, i] = running_ave(k_run[:,4],t)
-k_ave, k_std = np.average(kappa, axis=1), kappa_std(kappa, run_num)
+k_ave = np.average(kappa, axis=1)
+k_std = []
+    for i in range(len(kappa)):
+        k_std.append(np.std(kappa[i]) / np.sqrt(run_num))
 print("k = " + format(k_ave[-1], ".3f") + " ± " + format(k_std[-1], ".3f") + "\n")
 
 shc_raw, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
-finalx, finaly, finalz = np.mean(thermo[-9, -10:-1], axis=0), np.mean(thermo[-9, -5:-1], axis=0), np.mean(thermo[-9, -1:-1], axis=0)
+finalx, finaly, finalz = np.mean(thermo[-10:, -9], axis=0), np.mean(thermo[-10:, -5], axis=0), np.mean(thermo[-10:, -1], axis=0)
 V = finalx * finaly * finalz
 shc_nu = shc_raw[-freq_points:, 0]/(2*pi)
 shc_sample = 2*num_corr_points + freq_points - 1
@@ -85,7 +90,7 @@ for i in range(freq_points):
         shc_correct[i] = shc[i] * x ** 2 * exp(x) / (exp(x) - 1) ** 2
 kappa_quantum = [np.trapezoid(shc_correct[:, i], shc_nu) for i in range(run_num)]
 kappa_quantum_ave = np.average(kappa_quantum)
-kappa_quantum_std = np.std(kappa_quantum) / sqrt(run_num)
+kappa_quantum_std = np.std(kappa_quantum) / np.sqrt(run_num)
 print("k_quantum_corrected = " + format(kappa_quantum_ave, ".3f") + " ± " + format(kappa_quantum_std, ".3f") + "\n")
 
 figure(figsize=(11, 5))
@@ -120,3 +125,5 @@ xlabel(r'$\omega$/2$\pi$ (THz)')
 title('(b)')
 
 savefig('kappa_shc.png', dpi=150, bbox_inches='tight')
+
+

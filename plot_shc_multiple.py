@@ -24,15 +24,16 @@ with open('run.in', 'r') as file:
         elif 'compute_hnemd' in line:
             Fex, Fey,Fez = line.split()[2], line.split()[3], line.split()[4]
 print('驱动力方向：', dic)
-shc_unanalyzed = np.loadtxt('shc.out')
-shc = np.mean(np.split(shc_unanalyzed, int(sys.argv[1])), axis=0)
+print("请在run.in平衡阶段中添加dump_thermo命令")
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
     tick_params(axis='y', which='both', direction='in', left=True, right=True)
 
+shc_unanalyzed = np.loadtxt('shc.out')
+shc = np.mean(np.split(shc_unanalyzed, int(sys.argv[1])), axis=0)
 thermo = np.loadtxt('thermo.out')
-finalx, finaly, finalz = np.mean(thermo[-9, -10:-1], axis=0), np.mean(thermo[-9, -5:-1], axis=0), np.mean(thermo[-9, -1:-1], axis=0)
+finalx, finaly, finalz = np.mean(thermo[-10:, -9], axis=0), np.mean(thermo[-10:, -5], axis=0), np.mean(thermo[-10:, -1], axis=0)
 V = finalx * finaly * finalz
 Vvcf = shc[:2 * num_corr_points - 1, :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]

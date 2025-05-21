@@ -98,7 +98,7 @@ A = l[0]*l[2]/100 if dic == 'y' else l[1]*l[2]/100 if dic == 'x' else l[0]*l[1]/
 G = 160*Q/deltaT/A  # [GW/m2/K]
 
 shc, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
-finalx, finaly, finalz = np.mean(thermo[-9, -10:-1], axis=0), np.mean(thermo[-9, -5:-1], axis=0), np.mean(thermo[-9, -1:-1], axis=0)
+finalx, finaly, finalz = np.mean(thermo[-10:, -9], axis=0), np.mean(thermo[-10:, -5], axis=0), np.mean(thermo[-10:, -1], axis=0)
 group_length = finalx/cx if dic == 'x' else finaly/cy if dic == 'y' else finalz/cz
 V = group_length*finaly*finalz if dic == 'x' else finalx*group_length*finalz if dic == 'y' else finalx*finaly*group_length
 Vvcf = shc[:(2*num_corr_points-1), :]

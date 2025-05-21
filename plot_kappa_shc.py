@@ -1,7 +1,7 @@
 import numpy as np
 from pylab import *
 from ase.io import read,write
-import subprocess, importlib.metadata
+import importlib.metadata
 
 uc = read('POSCAR')
 struc = uc*(10,10,10)
@@ -109,7 +109,7 @@ else:
 savefig('hnemd.png', dpi=150, bbox_inches='tight')
 
 shc, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
-finalx, finaly, finalz = np.mean(thermo[-9, -10:-1], axis=0), np.mean(thermo[-9, -5:-1], axis=0), np.mean(thermo[-9, -1:-1], axis=0)
+finalx, finaly, finalz = np.mean(thermo[-10:, -9], axis=0), np.mean(thermo[-10:, -5], axis=0), np.mean(thermo[-10:, -1], axis=0)
 V = finalx * finaly * finalz
 Vvcf = shc[:(2*num_corr_points-1), :]
 shc_t, shc_Ki, shc_Ko = Vvcf[:, 0], Vvcf[:, 1], Vvcf[:, 2]

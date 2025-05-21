@@ -3,11 +3,10 @@ import numpy as np
 from pylab import *
 import matplotlib.pyplot as plt
 import importlib.metadata
-scipy_version = importlib.metadata.version('scipy')
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python plot_kappa_multiple.py <number-of-runs>")
+    if len(sys.argv) != 3:
+        print("Usage: python plot_kappa_multiple.py <number-of-runs> <one-run-time>")
         sys.exit(1)
 if __name__ == "__main__":
     main()
@@ -22,9 +21,9 @@ with open('run.in', 'r') as file:
             dic = 'x' if float(line.split()[2]) > 0 else 'y' if float(line.split()[3]) > 0 else 'z'
 print('驱动力方向：', dic)
 
+run_time = int(sys.argv[2])
+one_lines = int(run_time / hnemd_sample)
 kappa = np.loadtxt('kappa.out', max_rows = int(sys.argv[1]) * int(one_lines))
-one_lines = max_rows / int(sys.argv[1])
-run_time = hnemd_sample * time_step * one_lines
 file_datas = np.split(kappa, int(sys.argv[1]))
 t = np.arange(1, one_lines + 1) * 0.001 * time_step
 xlimit = int(run_time * 0.001 * time_step)
@@ -34,6 +33,7 @@ def set_tick_params():
     tick_params(axis='y', which='both', direction='in', left=True, right=True)
 
 def running_ave(y: np.ndarray, x: np.ndarray) -> np.ndarray:
+    scipy_version = importlib.metadata.version('scipy')
     if scipy_version < '1.14':
         from scipy.integrate import cumtrapz
         return cumtrapz(y, x, initial=0) / x
