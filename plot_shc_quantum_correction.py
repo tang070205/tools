@@ -85,7 +85,7 @@ shc_correct = np.zeros((freq_points, run_num))
 for i in range(freq_points):
     for j in range(run_num):
         r = 6.62607015e-34 / 1.38065e-23  # h/k_B, unit in K*s
-        x = r * shc_nu[i] * 1e12 / 300  # dimensionless
+        x = r * shc_nu[i] * 1e12 / T  # dimensionless
         shc_correct[i] = shc[i] * x ** 2 * exp(x) / (exp(x) - 1) ** 2
 kappa_quantum = [np.trapezoid(shc_correct[:, i], shc_nu) for i in range(run_num)]
 kappa_quantum_ave = np.average(kappa_quantum)
