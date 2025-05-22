@@ -5,8 +5,7 @@ import importlib.metadata
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: python plot_kappa_multiple.py #一次")
-        print("Usage: python plot_kappa_multiple.py <number-of-runs> <one-run-time> #多次")
+        print("Usage: python plot_kappa_multiple.py <number-of-runs> <one-run-time> ")
         sys.exit(1)
 if __name__ == "__main__":
     main()
@@ -43,9 +42,9 @@ def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
     tick_params(axis='y', which='both', direction='in', left=True, right=True)
 
+run_time = int(sys.argv[2])
+output_num = int(run_time / hnemd_sample)
 if len(sys.argv) == 3:
-    run_time = int(sys.argv[2])
-    output_num = int(run_time / hnemd_sample)
     run_num = int(sys.argv[1])
     kappa_raw = np.loadtxt('kappa.out', max_rows = run_num * output_num)
 else:
@@ -63,8 +62,8 @@ for i in range(run_num):
         kappa[:, i] = running_ave(k_run[:,4],t)
 k_ave = np.average(kappa, axis=1)
 k_std = []
-    for i in range(len(kappa)):
-        k_std.append(np.std(kappa[i]) / np.sqrt(run_num))
+for i in range(len(kappa)):
+    k_std.append(np.std(kappa[i]) / np.sqrt(run_num))
 print("k = " + format(k_ave[-1], ".3f") + " ± " + format(k_std[-1], ".3f") + "\n")
 
 shc_raw, thermo = np.loadtxt('shc.out'), np.loadtxt('thermo.out')
