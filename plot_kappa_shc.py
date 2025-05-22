@@ -31,8 +31,8 @@ print("请在run.in平衡阶段中添加dump_thermo命令")
 
 kappa = np.loadtxt('kappa.out')
 run_time = hnemd_sample * time_step * len(kappa)
-t = np.arange(1, len(kappa) + 1) * time_step
-xlimit = int(run_time * 0.001)
+t = np.arange(1, len(kappa) + 1) * time_step * 0.001
+xlimit = int(run_time * 0.000001)
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -121,7 +121,7 @@ shc_kw = shc_kwi + shc_kwo
 shc_K = shc_Ki + shc_Ko 
 
 Gc = np.load('Gc.npy')
-lambda_i = (shc_kw/Gc)
+lambda_i = np.abs(shc_kw/Gc)
 length = np.logspace(1,6,100)
 k_L = np.zeros_like(length)
 numpy_version = importlib.metadata.version('numpy')
