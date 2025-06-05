@@ -49,6 +49,7 @@ for root, dirs, files in os.walk(os.path.abspath(sys.argv[1])):
         positions = atoms.get_positions()
         forces = atoms.get_forces()
     elif "abacus.json" in files and "running_scf.log" not in files:
+        print(f"Directory {root} with abacus.json")
         json_file = os.path.join(root, "abacus.json")
         scf_nmax = get_scf_info(root)
         with open(json_file, 'r', encoding='utf-8') as file_json:
@@ -115,5 +116,4 @@ for root, dirs, files in os.walk(os.path.abspath(sys.argv[1])):
         atoms.info['config_type'] = root
     write(sys.argv[2], atoms, format='extxyz', append=True)
 '''
-
 
