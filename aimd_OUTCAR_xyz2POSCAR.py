@@ -30,11 +30,11 @@ for line in open('xmllist'):
             del b[ind].calc.results['stress']
             b[ind].pbc=True
             b[ind].info['config_type']=label
-            write("aimd.xyz",b[ind],append=True)
+            write("single-point.xyz",b[ind],append=True)
         else:
             b[ind].pbc=True
             b[ind].info['config_type']=label
-            write("dump.xyz",b[ind],append=True)
+            write("aimd.xyz",b[ind],append=True)
     os.system("rm screen_tmp")
 os.system("rm xmllist")
 

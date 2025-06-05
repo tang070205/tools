@@ -10,7 +10,7 @@ des_file = ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"
 all_color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 
             '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5', '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5']
 #all_color = ["grey", "MediumVioletRed", "MediumSpringGreen"]
-strucs, des, proj , all_strucs, all_des = {}, {}, {}, [], []
+strucs, des, all_strucs, all_des, des_names = {}, {}, [], [], []
 for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
     if os.path.exists(xyz):
         strucs[i] = read(xyz, ":")
@@ -20,21 +20,22 @@ for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
         sys.exit(1)
 
     if os.path.exists(descriptor):
-        des[i] = np.loadtxt(descriptor)
-    elif des_file[i] == "0":
-        des_name = os.path.splitext(os.path.basename(xyz_file[i]))[0]
+        des = np.loadtxt(descriptor)
+    elif descriptor == "0":
+        des_name = os.path.splitext(os.path.basename(xyz))[0]
+        des_names.append(des_name)
         if os.path.exists(f'descriptor-{des_name}.out'):
-            des[i] = np.loadtxt(f'descriptor-{des_name}.out')
+            des = np.loadtxt(f'descriptor-{des_name}.out')
         else:
             from NepTrain.core.nep import *
-            nep3=Nep3Calculator(nep_name)
-            descriptor = [nep3.get_descriptors(j).mean(0) for j in strucs[i]]
+            nep = Nep3Calculator(nep_name)
+            descriptor = [nep.get_descriptors(j).mean(0) for j in strucs[i]]
             with open(f'descriptor-{des_name}.out', "w") as f:
                 for descriptor in descriptor:
                     descriptor_str = " ".join(map(str, descriptor))
                     f.write(f"{descriptor_str}\n")
-            des[i] = np.loadtxt(f'descriptor-{des_name}.out')
-    all_des.append(des[i])
+            des = np.loadtxt(f'descriptor-{des_name}.out')
+    all_des.append(des)
 
 def main():
     if len(sys.argv) < 3:
@@ -150,14 +151,14 @@ elif sys.argv[2] == "grp":
 elif sys.argv[2] == "srp":
     from sklearn.random_projection import SparseRandomProjection  # pip install scikit-learn 
     reducer = SparseRandomProjection(n_components=2, random_state=42)
-for i in range(len(des)):
-    proj[i] = reducer.fit_transform(des[i])
+reducer.fit(all_des)
 
 if sys.argv[1] == "all":
-    for i in range(len(des)):
-        if len(des[i]) == len(strucs[i]):
+    for i in range(len(all_des)):
+        if len(all_des[i]) == len(strucs[i]):
+            proj = reducer.fit_transform(all_des[i])
             energy_train = get_energies_per_atom(xyz_file[i])
-            sc = scatter(proj[i][:, 0], proj[i][:, 1], c=energy_train, cmap='Blues', edgecolor=all_color[i], alpha=0.8, label=os.path.splitext(os.path.basename(xyz_file[i]))[0])
+            sc = scatter(proj[:, 0], proj[:, 1], c=energy_train, cmap='Blues', edgecolor=all_color[i], alpha=0.8, label=des_names[i])
         else:
             with open(nep_name, 'r') as file:
                 first_line = file.readline().strip()
@@ -171,7 +172,7 @@ if sys.argv[1] == "all":
                 scatter([i[0] for i in element_descriptors[element]], [i[1] for i in element_descriptors[element]], edgecolor='grey', alpha=0.8, label=element)
             legend(frameon=False, fontsize=10, loc='upper right')
             title(f'Descriptors for each atom with {sys.argv[2]}')
-    if len(des[0]) == len(strucs[0]):
+    if len(all_des[0]) == len(strucs[0]):
         cbar = colorbar(sc, cax=gca().inset_axes([0.73, 0.95, 0.23, 0.03]), orientation='horizontal')
         #cbar.ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         cbar.set_ticks([sc.get_clim()[0], sc.get_clim()[1]])
@@ -186,9 +187,8 @@ if sys.argv[1] == "all":
     savefig(f"all-points-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "select":
-    struc_lines = get_structure_lines()
-    min_distances = []
-    counts = []
+    all_proj = reducer.fit_transform(all_des)
+    struc_lines, min_distances, counts = get_structure_lines(), [], []
     for arg in sys.argv[3:]:
         if float(arg) < 1:
             min_distances.append(float(arg))
@@ -197,13 +197,13 @@ elif sys.argv[1] == "select":
     select_values = min_distances + counts
     for select_value in select_values:
         if float(select_value) < 1:
-            select_ids = sorted(set(FarthestPointSample(des[0], min_distance=select_value)))
+            select_ids = sorted(set(FarthestPointSample(all_des, min_distance=select_value)))
         else:
-            select_ids = sorted(set(FarthestPointSample(des[0], min_distance=0, max_select=select_value)))
-        write(f"select_{select_value}.xyz", [strucs[0][j] for j in select_ids], format='extxyz')
-        abandon_ids = [i for i in range(len(strucs[0])) if i not in select_ids]
-        write(f"abandon_{select_value}.xyz", [strucs[0][j] for j in abandon_ids], format='extxyz')
-        scatter(proj[0][:, 0], proj[0][:, 1], alpha=0.8, c="#8e9cff", label="All")
+            select_ids = sorted(set(FarthestPointSample(all_des, min_distance=0, max_select=select_value)))
+        write(f"select_{select_value}.xyz", [all_strucs[j] for j in select_ids], format='extxyz')
+        abandon_ids = [i for i in range(len(all_strucs)) if i not in select_ids]
+        write(f"abandon_{select_value}.xyz", [all_strucs[j] for j in abandon_ids], format='extxyz')
+        scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff", label="All")
         selected_proj = array([proj[0][i] for i in select_ids])
         if float(select_value) < 1:
             scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="min_distance={}".format(select_value))
@@ -216,22 +216,24 @@ elif sys.argv[1] == "select":
         savefig(f"select-{select_value}-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "pick":
+    all_proj = reducer.fit_transform(all_des)
     struc_lines = get_structure_lines()
     pick_ids = set()
     for i in range(3, len(sys.argv), 4):
         x_start, x_end, y_start, y_end = map(float, sys.argv[i:i+4])
         range_x = (x_start, x_end)
         range_y = (y_start, y_end)
-        current_ids = pick_points(proj, range_x, range_y)
+        current_ids = pick_points(all_proj, range_x, range_y)
         pick_ids.update(current_ids)
     pick_ids = list(pick_ids)
-    write(f"pick.xyz", [strucs[0][j] for j in pick_ids], format='extxyz')
-    retain_ids = [i for i in range(len(strucs)) if i not in pick_ids]
-    write(f"retain.xyz", [strucs[0][j] for j in retain_ids], format='extxyz')
-    scatter(proj[pick_ids, 0], proj[pick_ids, 1], alpha=0.5, color='C1', label="Pick")
-    scatter(proj[retain_ids, 0], proj[retain_ids, 1], alpha=0.5, color='C0', label="Retain")
+    write(f"pick.xyz", [all_strucs[j] for j in pick_ids], format='extxyz')
+    retain_ids = [i for i in range(len(all_strucs)) if i not in pick_ids]
+    write(f"retain.xyz", [all_strucs[j] for j in retain_ids], format='extxyz')
+    scatter(all_proj[pick_ids, 0], all_proj[pick_ids, 1], alpha=0.5, color='C1', label="Pick")
+    scatter(all_proj[retain_ids, 0], all_proj[retain_ids, 1], alpha=0.5, color='C0', label="Retain")
     set_tick_params()
     xlabel('PC1')
     ylabel('PC2')
     legend()
     savefig(f"retain-pick-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
+

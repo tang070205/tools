@@ -246,7 +246,7 @@ if os.path.exists('loss.out'):
         savefig(f'nep-{model_type}.png', dpi=200)
     else:
         if lambda_v == '0':
-            figure(figsize=(17,5))
+            figure(figsize=(11,5))
             plot_diagonals(diag_types, 1, 2, 1)
             savefig('nep-ef-diagonals.png', dpi=200)
         elif not os.path.exists('stress_train.out'):
@@ -271,7 +271,7 @@ else:
         savefig(f'nep-{model_type}.png', dpi=200)
     else:
         if lambda_v == '0':
-            figure(figsize=(17,5))
+            figure(figsize=(11,5))
             plot_diagonals(diag_types, 1, 2, 1)
             savefig('nep-ef-diagonals.png', dpi=200)
         elif not os.path.exists('stress_train.out'):
