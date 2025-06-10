@@ -42,12 +42,19 @@ def calc_r2_rmse(out_file):
     rmse_data = rmse_origin * 1000 if rmse_origin < 1 else rmse_origin
     return rmse_origin, rmse_data, r2_data
 
+with open('nep.txt', 'r') as file:
+    first_line = file.readline().strip()
+    elements = first_line.split()[2:]
 with open('nep.in', 'r') as file:
     for line in file:
         line = line.strip()
-        if 'type' in line:
-            elements = line.split()[2:]
-        lambda_v = line.split()[1] if 'lambda_v' in line else 0.1
+        if 'lambda_v' in line:
+            if line.startswith('#'):
+                lambda_v = 0.1
+            else:
+                lambda_v = line.split()[1]
+        else:
+            lambda_v = 0.1
 
 dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
 model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
@@ -163,11 +170,11 @@ def plot_charge():
     print('如果不是fullbatch, 请使用预测得到的charge_*.out文件')
     from ase.io import read
     import seaborn as sns
-    train_symbols, test_symbols = [], []
+    charge_symbols, train_symbols, test_symbols = [], [], []
     def sturges_bins(data):
-    n = len(data)
-    bins = int(math.log2(n) + 1)
-    return max(bins, 1)
+        n = len(data)
+        bins = int(math.log2(n) + 1)
+        return max(bins, 1)
     
     def get_charge(file, charge_data):
         charge_strucs = read(f'{file}.xyz', index=':')
@@ -194,6 +201,7 @@ def plot_charge():
 
     xlabel('Charge')
     ylabel('Frequency')
+    #ylim(0, 1000)
     set_tick_params()
     tight_layout()
     pass
