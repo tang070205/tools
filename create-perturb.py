@@ -25,11 +25,14 @@ perturb_dic = f'perturb-{poscar_file}'
 os.makedirs(perturb_dic, exist_ok=True)
 shutil.copyfile(poscar_file, os.path.join(perturb_dic, 'POSCAR'))
 os.chdir(perturb_dic)
-perturbed_system = dpdata.System('POSCAR').perturb(pert_num=perturbations,
-                                                    cell_pert_fraction=0.03,
-                                                    atom_pert_distance=0.1,
-                                                    atom_pert_style='uniform')
-for j in range(perturbations):  
+perturbed_system = dpdata.System('POSCAR').perturb(pert_num=perturbations,           #生成个数
+                                                    cell_pert_fraction = 0.03,       #晶胞扰动比例
+                                                    atom_pert_distance = 0.1,        #原子扰动距离
+                                                    atom_pert_style = 'uniform',     #原子扰动方式：uniform, normal, const
+                                                    atom_pert_prob = 1.0,            #原子数扰动比例
+                                                    #elem_pert_list = None            #指定元素扰动列表, 如['O', 'Si']     #可能在0.25版本中开始支持或根据2025/6/16的pr进行手动更改
+                                                    )
+for j in range(perturbations):
     train_directory = f'train-{poscar_file}-{j+1}'
     os.makedirs(train_directory, exist_ok=True)
     poscar_filename = f'POSCAR{j+1}'
