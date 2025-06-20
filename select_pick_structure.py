@@ -10,7 +10,7 @@ des_file = ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"
 all_color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 
             '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5', '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5']
 #all_color = ["grey", "MediumVioletRed", "MediumSpringGreen"]
-strucs, des, all_strucs, all_des, des_names = {}, {}, [], [], []
+strucs, des, all_strucs, append_des, extend_des, des_names = {}, {}, [], [], [], []
 for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
     if os.path.exists(xyz):
         strucs[i] = read(xyz, ":")
@@ -35,7 +35,8 @@ for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
                     descriptor_str = " ".join(map(str, descriptor))
                     f.write(f"{descriptor_str}\n")
             des = np.loadtxt(f'descriptor-{des_name}.out')
-    all_des.append(des)
+    append_des.append(des)
+    extend_des.append(des)
 
 def main():
     if len(sys.argv) < 3:
@@ -46,12 +47,6 @@ def main():
         sys.exit(1)
 if __name__ == "__main__":
     main()
-
-def get_structure_lines():
-    struc_lines = [0]
-    for atoms in all_strucs:
-        struc_lines.append(struc_lines[-1] + len(atoms)+2)
-    return struc_lines
 
 def FarthestPointSample(new_data, now_data=[], min_distance=0.1, min_select=1, max_select=None, metric='euclidean'):
     from scipy.spatial.distance import cdist
@@ -78,37 +73,12 @@ def pick_points(proj, range_x, range_y):
             pick_strucs.append(i)
     return pick_strucs
 
-def get_indices(xyzfile):
-    valid_indices = []
-    element_indices = {element: [] for element in elements}
-    with open(xyzfile, 'r') as file:
-        for line in file:
-            parts = line.strip().split()
-            if len(parts) > 1 and "Lattice" not in line:
-                valid_indices.append(line)
-    for i, line in enumerate(valid_indices):
-        parts = line.split()
-        if parts[0] in element_indices:
-            element_indices[parts[0]].append(i)
-    return element_indices
-
 def get_energies_per_atom(xyzfile):
-    with open(xyzfile, 'r') as file:
-        lines = file.readlines()
-    struc_lines, energies_per_atom = [], []
-    for line in lines:
-        columns = line.strip().split()
-        if len(columns) != 7:
-            struc_lines.append(line)
-    i = 0
-    while i < len(struc_lines):
-        num_atoms_line = struc_lines[i].strip()
-        energy_line = struc_lines[i+1].strip()
-        num_atoms = int(num_atoms_line)
-        energy_value = float(energy_line.split('nergy=')[1].split()[0])
-        energy_per_atom = energy_value / num_atoms
+    strucs = read(xyzfile, format='xyz', index=':')
+    energies_per_atom = []
+    for atoms in strucs:
+        energy_per_atom = atoms.get_potential_energy() / len(atoms)
         energies_per_atom.append(energy_per_atom)
-        i += 2
     return energies_per_atom
 
 def set_tick_params():
@@ -134,7 +104,7 @@ elif sys.argv[2] == "kpca":
     from sklearn.decomposition import KernelPCA  # pip install scikit-learn 
     reducer = KernelPCA(n_components=2)#, kernel='rbf', gamma=0.1)
 elif sys.argv[2] == "mds":
-    from sklearn.manifold import MDS
+    from sklearn.manifold import MDS  # pip install scikit-learn 
     reducer = MDS(n_components=2, random_state=42)
 elif sys.argv[2] == "se":
     from sklearn.manifold import SpectralEmbedding  # pip install scikit-learn 
@@ -151,25 +121,23 @@ elif sys.argv[2] == "grp":
 elif sys.argv[2] == "srp":
     from sklearn.random_projection import SparseRandomProjection  # pip install scikit-learn 
     reducer = SparseRandomProjection(n_components=2, random_state=42)
-reducer.fit(all_des)
 
 if sys.argv[1] == "all":
-    for i in range(len(all_des)):
-        if len(all_des[i]) == len(strucs[i]):
-            proj = reducer.fit_transform(all_des[i])
+    for i in range(len(append_des)):
+        if len(append_des[i]) == len(strucs[i]):
+            proj = reducer.fit_transform(append_des[i])
             energy_train = get_energies_per_atom(xyz_file[i])
             sc = scatter(proj[:, 0], proj[:, 1], c=energy_train, cmap='Blues', edgecolor=all_color[i], alpha=0.8, label=des_names[i])
         else:
-            with open(nep_name, 'r') as file:
-                first_line = file.readline().strip()
-                elements = first_line.split()[2:]
-            element_descriptors = {element: [] for element in elements}
-            element_indices = get_indices(xyz_file[0])
-            for element in elements:
-                for idx in element_indices[element]:
-                    element_descriptors[element].append(proj[idx])
-            for element in elements:
-                scatter([i[0] for i in element_descriptors[element]], [i[1] for i in element_descriptors[element]], edgecolor='grey', alpha=0.8, label=element)
+            element_descriptors, all_des_symbols = {element: [] for element in elements}, []
+            for des_struc in all_strucs:
+                des_symbol = des_struc.get_chemical_symbols()
+                all_des_symbols.extend(des_symbol)
+            for symbol, des in zip(all_des_symbols, extend_des):
+                element_descriptors[symbol].append(des)
+            element_des = {element: des for element, des in element_descriptors.items() if des}
+            for element in element_des.keys():
+                scatter([i[0] for i in element_des[element]], [i[1] for i in element_des[element]], edgecolor='grey', alpha=0.8, label=element)
             legend(frameon=False, fontsize=10, loc='upper right')
             title(f'Descriptors for each atom with {sys.argv[2]}')
     if len(all_des[0]) == len(strucs[0]):
@@ -187,8 +155,8 @@ if sys.argv[1] == "all":
     savefig(f"all-points-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "select":
-    all_proj = reducer.fit_transform(all_des)
-    struc_lines, min_distances, counts = get_structure_lines(), [], []
+    all_proj = reducer.fit_transform(extend_des)
+    min_distances, counts = [], []
     for arg in sys.argv[3:]:
         if float(arg) < 1:
             min_distances.append(float(arg))
@@ -197,14 +165,14 @@ elif sys.argv[1] == "select":
     select_values = min_distances + counts
     for select_value in select_values:
         if float(select_value) < 1:
-            select_ids = sorted(set(FarthestPointSample(all_des, min_distance=select_value)))
+            select_ids = sorted(set(FarthestPointSample(extend_des, min_distance=select_value)))
         else:
-            select_ids = sorted(set(FarthestPointSample(all_des, min_distance=0, max_select=select_value)))
+            select_ids = sorted(set(FarthestPointSample(extend_des, min_distance=0, max_select=select_value)))
         write(f"select_{select_value}.xyz", [all_strucs[j] for j in select_ids], format='extxyz')
         abandon_ids = [i for i in range(len(all_strucs)) if i not in select_ids]
         write(f"abandon_{select_value}.xyz", [all_strucs[j] for j in abandon_ids], format='extxyz')
-        scatter(proj[:, 0], proj[:, 1], alpha=0.8, c="#8e9cff", label="All")
-        selected_proj = array([proj[0][i] for i in select_ids])
+        scatter(all_proj[:, 0], all_proj[:, 1], alpha=0.8, c="#8e9cff", label="All")
+        selected_proj = array([all_proj[i] for i in select_ids])
         if float(select_value) < 1:
             scatter(selected_proj[:, 0], selected_proj[:, 1], alpha=0.7, c="#e26fff", label="min_distance={}".format(select_value))
         else:
@@ -216,8 +184,7 @@ elif sys.argv[1] == "select":
         savefig(f"select-{select_value}-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
 
 elif sys.argv[1] == "pick":
-    all_proj = reducer.fit_transform(all_des)
-    struc_lines = get_structure_lines()
+    all_proj = reducer.fit_transform(extend_des)
     pick_ids = set()
     for i in range(3, len(sys.argv), 4):
         x_start, x_end, y_start, y_end = map(float, sys.argv[i:i+4])
@@ -236,4 +203,3 @@ elif sys.argv[1] == "pick":
     ylabel('PC2')
     legend()
     savefig(f"retain-pick-{sys.argv[2]}.png", dpi=150, bbox_inches='tight')
-
