@@ -170,7 +170,6 @@ def plot_charge():
     print('如果不是fullbatch, 请使用预测得到的charge_*.out文件')
     from ase.io import read
     import seaborn as sns
-    charge_symbols, train_symbols, test_symbols = [], [], []
     def sturges_bins(data):
         n = len(data)
         bins = int(math.log2(n) + 1)
@@ -178,6 +177,7 @@ def plot_charge():
     
     def get_charge(file, charge_data):
         charge_strucs = read(f'{file}.xyz', index=':')
+        charge_symbols = []
         for charge_struc in charge_strucs:
             charge_symbol = charge_struc.get_chemical_symbols()
             charge_symbols.extend(charge_symbol)
@@ -219,13 +219,21 @@ def plot_descriptor():
         cbar.set_label('E/atom (eV)')
         title('Descriptors for each structure')
     elif len(descriptor) == len(force_train):
-        element_descriptors = {element: [] for element in elements}
-        element_indices = get_indices('train')
-        for element in elements:
-            for idx in element_indices[element]:
-                element_descriptors[element].append(proj[idx])
-        for element in elements:
-            scatter([i[0] for i in element_descriptors[element]], [i[1] for i in element_descriptors[element]], edgecolor='grey', alpha=0.8, label=element)
+        def get_atom_des(file, descriptor):
+            des_strucs = read(f'{file}.xyz', index=':')
+            des_symbols = []
+            for des_struc in des_strucs:
+                des_symbol = des_struc.get_chemical_symbols()
+                des_symbols.extend(des_symbol)
+            element_descriptors = {element: [] for element in elements}
+            for symbol, des in zip(des_symbols, descriptor):
+                element_descriptors[symbol].append(des)
+            non_empty_elements_descriptors = {element: des for element, des in element_descriptors.items() if des}
+            return non_empty_elements_descriptors
+
+        element_des = get_atom_des('train', descriptor)
+        for element in element_des.keys():
+            scatter([i[0] for i in element_des[element]], [i[1] for i in element_des[element]], edgecolor='grey', alpha=0.8, label=element)
         legend(frameon=False, fontsize=10, loc='upper right')
         title('Descriptors for each atom')
     else:
