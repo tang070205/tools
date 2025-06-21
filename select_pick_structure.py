@@ -74,13 +74,13 @@ def pick_points(proj, range_x, range_y):
     return pick_strucs
 
 def get_energies_per_atom(xyzfile):
-    strucs = read(xyzfile, format='xyz', index=':')
+    strucs = read(xyzfile, ":")
     energies_per_atom = []
     for atoms in strucs:
         if not atoms.has('energy'):
-            energy_per_atom = atoms.get_potential_energy() / len(atoms)
-        else:
             energy_per_atom = atoms.info.get('Energy') / len(atoms)
+        else:
+            energy_per_atom = atoms.get_potential_energy() / len(atoms)
         energies_per_atom.append(energy_per_atom)
     return energies_per_atom
 
@@ -143,7 +143,7 @@ if sys.argv[1] == "all":
                 scatter([i[0] for i in element_des[element]], [i[1] for i in element_des[element]], edgecolor='grey', alpha=0.8, label=element)
             legend(frameon=False, fontsize=10, loc='upper right')
             title(f'Descriptors for each atom with {sys.argv[2]}')
-    if len(all_des[0]) == len(strucs[0]):
+    if len(append_des[0]) == len(strucs[0]):
         cbar = colorbar(sc, cax=gca().inset_axes([0.73, 0.95, 0.23, 0.03]), orientation='horizontal')
         #cbar.ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         cbar.set_ticks([sc.get_clim()[0], sc.get_clim()[1]])
