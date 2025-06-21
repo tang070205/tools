@@ -36,7 +36,7 @@ for i, (xyz, descriptor) in enumerate(zip(xyz_file, des_file)):
                     f.write(f"{descriptor_str}\n")
             des = np.loadtxt(f'descriptor-{des_name}.out')
     append_des.append(des)
-    extend_des.append(des)
+    extend_des.extend(des)
 
 def main():
     if len(sys.argv) < 3:
@@ -77,7 +77,10 @@ def get_energies_per_atom(xyzfile):
     strucs = read(xyzfile, format='xyz', index=':')
     energies_per_atom = []
     for atoms in strucs:
-        energy_per_atom = atoms.get_potential_energy() / len(atoms)
+        if not atoms.has('energy'):
+            energy_per_atom = atoms.get_potential_energy() / len(atoms)
+        else:
+            energy_per_atom = atoms.info.get('Energy') / len(atoms)
         energies_per_atom.append(energy_per_atom)
     return energies_per_atom
 
