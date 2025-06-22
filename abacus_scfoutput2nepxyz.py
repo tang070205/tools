@@ -19,7 +19,7 @@ def get_scf_info(root):
                 if 'scf_nmax' in line:
                     scf_nmax = int(line.split()[1])
     else:
-        scf_nmax = 1000
+        scf_nmax = 100
     return scf_nmax
 
 for root, dirs, files in os.walk(os.path.abspath(sys.argv[1])):
