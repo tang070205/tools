@@ -25,6 +25,8 @@ files = ['loss.out', 'energy_train.out', 'energy_test.out',
 for file in files:
     if os.path.exists(file):
         vars()[file.split('.')[0]] = np.loadtxt(file)
+dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
+model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -42,10 +44,12 @@ def calc_r2_rmse(out_file):
     rmse_data = rmse_origin * 1000 if rmse_origin < 1 else rmse_origin
     return rmse_origin, rmse_data, r2_data
 
-with open('nep.txt', 'r') as file:
+txt_file = 'gnep.txt' if os.path.exists('gnep.txt') else 'nep.txt'
+in_file = 'gnep.in' if os.path.exists('gnep.in') else 'nep.in'
+with open(txt_file, 'r') as file:
     first_line = file.readline().strip()
     elements = first_line.split()[2:]
-with open('nep.in', 'r') as file:
+with open(in_file, 'r') as file:
     for line in file:
         line = line.strip()
         if 'lambda_v' in line:
@@ -56,34 +60,60 @@ with open('nep.in', 'r') as file:
         else:
             lambda_v = 0.1
 
-dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
-model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
+label_l12, label_ef, label_ef_train, label_ef_test = [r'$L_1$', r'$L_2$'], ['Energy', 'Force'], ['E-train', 'F-train'], ['E-test', 'F-test']
+if os.path.exists('gnep.in'):
+    loss_ltotal = loss[:, 1]
+    loss_train, loss_train_v = loss[:, 2:4], loss[:, 2:5]
+    loss_test, loss_test_v= loss[:, 5:7], loss[:, 5:8]
+else:
+    loss_l12 = loss[:, 2:4]
+    loss_train, loss_train_v = loss[:, 4:6], loss[:, 4:7]
+    loss_test, loss_test_v = loss[:, 7:9], loss[:, 7:10]
+
 def plot_loss():
     if loss.shape[1] < 7:
         loglog(loss[:, 2:5])
         if os.path.exists('test.xyz'):
             loglog(loss[:, 5])
-            legend([ r'$L_1$', r'$L_2$', f'{model_type}-train', f'{model_type}test'], ncol=4, frameon=False, fontsize=8.5, loc='upper right')
+            legend(label_l12 + [f'{model_type}-train', f'{model_type}-test'], ncol=4, frameon=False, fontsize=8.5, loc='upper right')
         else:
-            legend([ r'$L_1$', r'$L_2$', f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
+            legend(label_l12 + [f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
     else: 
         if lambda_v == '0':
-            loglog(loss[:, 2:6])
+            loglog(loss_train)
             if os.path.exists('test.xyz'):
-                loglog(loss[:, 7:9])
-                legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'E-test', 'F-test'], ncol=3, frameon=False, fontsize=10, loc='lower left')
+                loglog(loss_test)
+                loss_label = label_ef_train + label_ef_test if os.path.exists('gnep.in') else label_l12 + label_ef_train + label_ef_test
+                legend(loss_label, ncol=3, frameon=False, fontsize=10, loc='lower left')
             else:
-                legend([r'$L_1$', r'$L_2$', 'Energy', 'Force'], ncol=4, frameon=False, fontsize=8, loc='upper right')
+                loss_label = label_ef if os.path.exists('gnep.in') else label_l12 + label_ef
+                legend(loss_label, ncol=4, frameon=False, fontsize=8, loc='upper right')
         else:
-            loglog(loss[:, 2:7])
+            loglog(loss_train_v)
             if os.path.exists('test.xyz'):
-                loglog(loss[:, 7:10])
-                legend([r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test'], ncol=2, frameon=False, fontsize=8, loc='lower left')
+                loglog(loss_test_v)
+                loss_label_v = label_ef_train + ['V-train'] + label_ef_test + ['V-test'] if os.path.exists('gnep.in') else label_l12 + label_ef_train + ['V-train'] + label_ef_test + ['V-test']
+                legend(loss_label_v, ncol=2, frameon=False, fontsize=8, loc='lower left')
             else:
-                legend([r'$L_1$', r'$L_2$', 'Energy', 'Force', 'Virial'], ncol=5, frameon=False, fontsize=8, loc='upper right')
+                loss_label_v = label_ef + ['Virial'] if os.path.exists('gnep.in') else label_l12 + label_ef + ['Virial']
+                legend(loss_label_v, ncol=5, frameon=False, fontsize=8, loc='upper right')
+
     set_tick_params()
-    xlabel('Generation/100')
+    if os.path.exists('gnep.in'):
+        xlabel('Epoch')
+    else:
+        xlabel('Generation/100')
     ylabel('Loss')
+    tight_layout()
+    pass
+
+def plot_learning_rate():
+    plot(loss[:, 0], loss[:, 8])
+    set_tick_params()
+    #xlim(0, 1000)
+    #ylim(0.9, 1)
+    xlabel('Epoch')
+    ylabel('Learning Rate')
     tight_layout()
     pass
 
@@ -167,7 +197,6 @@ def plot_diagonal(data):
     pass
 
 def plot_charge():
-    print('如果不是fullbatch, 请使用预测得到的charge_*.out文件')
     from ase.io import read
     import seaborn as sns
     def sturges_bins(data):
@@ -214,8 +243,8 @@ def plot_descriptor():
     if len(descriptor) == len(energy_train):
         sc = scatter(proj[:, 0], proj[:, 1], c=energy_train[:,1], cmap='Blues', edgecolor='grey', alpha=0.8)
         cbar = colorbar(sc, cax=gca().inset_axes([0.73, 0.95, 0.23, 0.03]), orientation='horizontal')
-        cbar.set_ticks([sc.get_clim()[0], sc.get_clim()[1]])
-        cbar.set_ticklabels(['{:.1f}'.format(sc.get_clim()[0]), '{:.1f}'.format(sc.get_clim()[1])])
+        #cbar.set_ticks([sc.get_clim()[0], sc.get_clim()[1]])
+        #cbar.set_ticklabels(['{:.1f}'.format(sc.get_clim()[0]), '{:.1f}'.format(sc.get_clim()[1])])
         cbar.set_label('E/atom (eV)')
         title('Descriptors for each structure')
     elif len(descriptor) == len(force_train):
@@ -277,14 +306,24 @@ def plot_add_picture(additive):
         savefig(f'nep-{additive}.png', dpi=200)
 
 if os.path.exists('loss.out'):
-    print('NEP训练')
-    figure(figsize=(5.5,5))
-    plot_loss()
-    savefig('nep-loss.png', dpi=200)
+    print('NEP Train')
+    if os.path.exists('gnep.in'):
+        figure(figsize=(11,5))
+        subplot(1,2,1)
+        plot_loss()
+        subplot(1,2,2)
+        plot_learning_rate()
+        savefig('gnep-loss-learning_rate.png', dpi=200)
+    else:
+        figure(figsize=(5.5,5))
+        plot_loss()
+        savefig('nep-loss.png', dpi=200)
     plot_base_picture()
     plot_add_picture('charge')
+    print('如果不是fullbatch, 请使用预测得到的charge_*.out文件')
 else:
-    print('NEP预测')
+    print('NEP Prediction')
     plot_base_picture()
     plot_add_picture('charge')
     plot_add_picture('descriptor')
+
