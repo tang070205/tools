@@ -60,13 +60,14 @@ with open(in_file, 'r') as file:
         else:
             lambda_v = 0.1
 
-label_l12, label_ef, label_ef_train, label_ef_test = [r'$L_1$', r'$L_2$'], ['Energy', 'Force'], ['E-train', 'F-train'], ['E-test', 'F-test']
+label_Lgnep, label_Lnep = [r'$L_{\text{total}}$'], [r'$L_1$', r'$L_2$']
+label_ef, label_ef_train, label_ef_test = ['Energy', 'Force'], ['E-train', 'F-train'], ['E-test', 'F-test']
 if os.path.exists('gnep.in'):
-    loss_ltotal = loss[:, 1]
+    loss_L, learning_rate = loss[:, 1], loss[:, 8]
     loss_train, loss_train_v = loss[:, 2:4], loss[:, 2:5]
     loss_test, loss_test_v= loss[:, 5:7], loss[:, 5:8]
 else:
-    loss_l12 = loss[:, 2:4]
+    loss_L = loss[:, 2:4]
     loss_train, loss_train_v = loss[:, 4:6], loss[:, 4:7]
     loss_test, loss_test_v = loss[:, 7:9], loss[:, 7:10]
 
@@ -80,22 +81,24 @@ def plot_loss():
             legend(label_l12 + [f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
     else: 
         if lambda_v == '0':
+            loglog(loss_L)
             loglog(loss_train)
             if os.path.exists('test.xyz'):
                 loglog(loss_test)
-                loss_label = label_ef_train + label_ef_test if os.path.exists('gnep.in') else label_l12 + label_ef_train + label_ef_test
+                loss_label = label_Lgnep + label_ef_train + label_ef_test if os.path.exists('gnep.in') else label_Lnep + label_ef_train + label_ef_test
                 legend(loss_label, ncol=3, frameon=False, fontsize=10, loc='lower left')
             else:
-                loss_label = label_ef if os.path.exists('gnep.in') else label_l12 + label_ef
+                loss_label = label_Lgnep + label_ef if os.path.exists('gnep.in') else label_Lnep + label_ef
                 legend(loss_label, ncol=4, frameon=False, fontsize=8, loc='upper right')
         else:
+            loglog(loss_L)
             loglog(loss_train_v)
             if os.path.exists('test.xyz'):
                 loglog(loss_test_v)
-                loss_label_v = label_ef_train + ['V-train'] + label_ef_test + ['V-test'] if os.path.exists('gnep.in') else label_l12 + label_ef_train + ['V-train'] + label_ef_test + ['V-test']
+                loss_label_v = label_Lgnep + label_ef_train + ['V-train'] + label_ef_test + ['V-test'] if os.path.exists('gnep.in') else label_Lnep + label_ef_train + ['V-train'] + label_ef_test + ['V-test']
                 legend(loss_label_v, ncol=2, frameon=False, fontsize=8, loc='lower left')
             else:
-                loss_label_v = label_ef + ['Virial'] if os.path.exists('gnep.in') else label_l12 + label_ef + ['Virial']
+                loss_label_v = label_Lgnep + label_ef + ['Virial'] if os.path.exists('gnep.in') else label_Lnep + label_ef + ['Virial']
                 legend(loss_label_v, ncol=5, frameon=False, fontsize=8, loc='upper right')
 
     set_tick_params()
