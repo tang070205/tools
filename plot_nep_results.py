@@ -59,6 +59,13 @@ with open(in_file, 'r') as file:
                 lambda_v = line.split()[1]
         else:
             lambda_v = 0.1
+        if 'batch' in line:
+            if line.startswith('#'):
+                batch = 1 if os.path.exists('gnep.in') else 1000
+            else:
+                batch = int(line.split()[1])
+        else:
+            batch = 1 if os.path.exists('gnep.in') else 1000
 
 label_Lgnep, label_Lnep = [r'$L_{\text{total}}$'], [r'$L_1$', r'$L_2$']
 label_ef, label_ef_train, label_ef_test = ['Energy', 'Force'], ['E-train', 'F-train'], ['E-test', 'F-test']
@@ -80,7 +87,7 @@ def plot_loss():
         else:
             legend(label_l12 + [f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
     else: 
-        if lambda_v == '0':
+        if lambda_v == '0' or -1e+06 in virial_train[0, :]:
             loglog(loss_L)
             loglog(loss_train)
             if os.path.exists('test.xyz'):
@@ -111,7 +118,7 @@ def plot_loss():
     pass
 
 def plot_learning_rate():
-    plot(loss[:, 0], loss[:, 8])
+    plot(range(1, len(loss) + 1), loss[:, 8])
     set_tick_params()
     #xlim(0, 1000)
     #ylim(0.9, 1)
@@ -200,6 +207,9 @@ def plot_diagonal(data):
     pass
 
 def plot_charge():
+    if batch < len(energy_train):
+        print('If it is not fullbatch, please use the predicted charge_ *. out file')
+        continue
     from ase.io import read
     import seaborn as sns
     def sturges_bins(data):
@@ -288,7 +298,7 @@ def plot_base_picture():
         plot_diagonal(f'{model_type}')
         savefig(f'nep-{model_type}.png', dpi=200)
     else:
-        if lambda_v == '0':
+        if lambda_v == '0' or -1e+06 in virial_train[0, :]:
             figure(figsize=(11,5))
             plot_diagonals(diag_types, 1, 2, 1)
             savefig('nep-ef-diagonals.png', dpi=200)
@@ -323,7 +333,6 @@ if os.path.exists('loss.out'):
         savefig('nep-loss.png', dpi=200)
     plot_base_picture()
     plot_add_picture('charge')
-    print('如果不是fullbatch, 请使用预测得到的charge_*.out文件')
 else:
     print('NEP Prediction')
     plot_base_picture()
