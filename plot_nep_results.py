@@ -209,7 +209,7 @@ def plot_diagonal(data):
 def plot_charge():
     if batch < len(energy_train):
         print('If it is not fullbatch, please use the predicted charge_ *. out file')
-        continue
+        return
     from ase.io import read
     import seaborn as sns
     def sturges_bins(data):
