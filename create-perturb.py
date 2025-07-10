@@ -30,7 +30,8 @@ perturbed_system = dpdata.System('POSCAR').perturb(pert_num=perturbations,      
                                                     atom_pert_distance = 0.1,        #原子扰动距离
                                                     atom_pert_style = 'uniform',     #原子扰动方式：uniform, normal, const
                                                     atom_pert_prob = 1.0,            #原子数扰动比例
-                                                    #elem_pert_list = None            #指定元素扰动列表, 如['O', 'Si']     #可能在0.25版本中开始支持或根据2025/6/16的pr进行手动更改
+                                                    #elem_pert_list = None           
+                                                    #指定元素扰动列表或者对应索引原子, 如['O', 'Si']或者['2', '34']     #参考https://github.com/tang070205/tools/blob/main/dpdata-system-perturb.py
                                                     )
 for j in range(perturbations):
     train_directory = f'train-{poscar_file}-{j+1}'
