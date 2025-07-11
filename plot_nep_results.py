@@ -44,11 +44,7 @@ def calc_r2_rmse(out_file):
     rmse_data = rmse_origin * 1000 if rmse_origin < 1 else rmse_origin
     return rmse_origin, rmse_data, r2_data
 
-txt_file = 'gnep.txt' if os.path.exists('gnep.txt') else 'nep.txt'
 in_file = 'gnep.in' if os.path.exists('gnep.in') else 'nep.in'
-with open(txt_file, 'r') as file:
-    first_line = file.readline().strip()
-    elements = first_line.split()[2:]
 with open(in_file, 'r') as file:
     for line in file:
         line = line.strip()
@@ -67,18 +63,18 @@ with open(in_file, 'r') as file:
         else:
             batch = 1 if os.path.exists('gnep.in') else 1000
 
-label_Lgnep, label_Lnep = [r'$L_{\text{total}}$'], [r'$L_1$', r'$L_2$']
-label_ef, label_ef_train, label_ef_test = ['Energy', 'Force'], ['E-train', 'F-train'], ['E-test', 'F-test']
-if os.path.exists('gnep.in'):
-    loss_L, learning_rate = loss[:, 1], loss[:, 8]
-    loss_train, loss_train_v = loss[:, 2:4], loss[:, 2:5]
-    loss_test, loss_test_v= loss[:, 5:7], loss[:, 5:8]
-else:
-    loss_L = loss[:, 2:4]
-    loss_train, loss_train_v = loss[:, 4:6], loss[:, 4:7]
-    loss_test, loss_test_v = loss[:, 7:9], loss[:, 7:10]
-
 def plot_loss():
+    label_Lgnep, label_Lnep = [r'$L_{\text{total}}$'], [r'$L_1$', r'$L_2$']
+    label_ef, label_ef_train, label_ef_test = ['Energy', 'Force'], ['E-train', 'F-train'], ['E-test', 'F-test']
+    if os.path.exists('gnep.in'):
+        loss_L, learning_rate = loss[:, 1], loss[:, 8]
+        loss_train, loss_train_v = loss[:, 2:4], loss[:, 2:5]
+        loss_test, loss_test_v= loss[:, 5:7], loss[:, 5:8]
+    else:
+        loss_L = loss[:, 2:4]
+        loss_train, loss_train_v = loss[:, 4:6], loss[:, 4:7]
+        loss_test, loss_test_v = loss[:, 7:9], loss[:, 7:10]
+    
     if loss.shape[1] < 7:
         loglog(loss[:, 2:5])
         if os.path.exists('test.xyz'):
@@ -210,8 +206,14 @@ def plot_charge():
     if batch < len(energy_train):
         print('If it is not fullbatch, please use the predicted charge_ *. out file')
         return
+    
     from ase.io import read
     import seaborn as sns
+    txt_file = 'gnep.txt' if os.path.exists('gnep.txt') else 'nep.txt'
+    with open(txt_file, 'r') as file:
+        first_line = file.readline().strip()
+        elements = first_line.split()[2:]
+    
     def sturges_bins(data):
         n = len(data)
         bins = int(math.log2(n) + 1)
