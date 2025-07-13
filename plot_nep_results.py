@@ -27,6 +27,14 @@ for file in files:
         vars()[file.split('.')[0]] = np.loadtxt(file)
 dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
 model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
+if os.path.exists('virial_train.out') and -1e+06 in virial_train:
+    train_indices = np.where(~np.any(virial_train == -1e+06, axis=1))[0].tolist()
+    np.savetxt('train_has_virial_indices.txt', train_indices, fmt='%d')
+    virial_train, stress_train = virial_train[train_indices], stress_train[train_indices]
+if os.path.exists('virial_test.out') and -1e+06 in virial_test:
+    test_indices = np.where(~np.any(virial_test == -1e+06, axis=1))[0].tolist()
+    np.savetxt('test_has_virial_indices.txt', test_indices, fmt='%d')
+    virial_test, stress_test = virial_test[test_indices], stress_test[test_indices]
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -128,10 +136,10 @@ def plot_diagonal(data):
     def plot_value(values, color):
         columns = int(values.shape[1]//2)
         if three_six_component == 0 or data == 'energy':
-            plot(values[:, 1], values[:, 0], '.', color=color)
+            plot(values[:, 0], values[:, 1], '.', color=color)
         else:
             for i in range(columns):
-                plot(values[:, i+columns], values[:, i], '.', color=color[i % len(color)])
+                plot(values[:, i], values[:, i+columns], '.', color=color[i % len(color)])
     pass
 
     units = {'force': 'eV/Å', 'stress': 'GPa', 'energy': 'eV/atom','virial': 'eV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
@@ -159,6 +167,7 @@ def plot_diagonal(data):
             return globals().get(f"{data}_{data_type}") if data == 'energy' else get_counts2two(globals().get(f"{data}_{data_type}"))
         else:
             return globals().get(f"{data}_{data_type}")
+
     data_train = process_data('train')
     train_min, train_max = get_range(data_train)
     plot_value(data_train, color_train)
