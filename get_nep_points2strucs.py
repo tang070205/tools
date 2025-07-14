@@ -25,7 +25,7 @@ fout = np.loadtxt(sys.argv[3])
 half_columns = int(fout.shape[1]//2)
 def calc_rmse(fout):
     if 'energy' in sys.argv[3]:
-        return np.sqrt(np.mean((fout[:,:half_columns]-fout[:,half_columns:])**2))
+        return np.sqrt(np.mean((fout[:,:half_columns]-fout[:,half_columns:])**2, axis=1))
     elif 'force' in sys.argv[3]:
         rmse = []
         for i in range(len(atom_counts) - 1):
