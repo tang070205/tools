@@ -53,7 +53,7 @@ for i in range(len(kpaths)):
         adjusted_sym_points = [x + origin_sym_points for x in sym_points_list[i]]
         whole_sym_points.extend(adjusted_sym_points)
         origin_sym_points += sym_points_list[i][-1]
-whole_sym_points = list(set(whole_sym_points))
+whole_sym_points = sorted(set(whole_sym_points))
 
 data = np.loadtxt("omega2.out")
 for i in range(len(data)):
@@ -86,7 +86,7 @@ xlim([0, whole_kpaths[-1]])
 for sym_point in whole_sym_points[1:-1]:
     plt.axvline(sym_point, color='black', linestyle='--')
 gca().set_xticks(whole_sym_points)
-#如果存在断点，这里需要修改，比如['GM', 'KG']这里要写[r'$\Gamma$', 'M|K', r'$\Gamma$']，或许有点顺序问题要改一下
+#如果存在断点，这里需要修改，比如['GM', 'KG']这里要写[r'$\Gamma$', 'M|K', r'$\Gamma$']
 gca().set_xticklabels([r'$\Gamma$', 'M', 'K', r'$\Gamma$'])
 ylim([0, 30])
 gca().set_yticks(linspace(0,30,7))
