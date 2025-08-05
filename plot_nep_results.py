@@ -27,14 +27,6 @@ for file in files:
         vars()[file.split('.')[0]] = np.loadtxt(file)
 dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
 model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
-if os.path.exists('virial_train.out') and -1e+06 in virial_train:
-    train_indices = np.where(~np.any(virial_train == -1e+06, axis=1))[0].tolist()
-    np.savetxt('train_has_virial_indices.txt', train_indices, fmt='%d')
-    virial_train, stress_train = virial_train[train_indices], stress_train[train_indices]
-if os.path.exists('virial_test.out') and -1e+06 in virial_test:
-    test_indices = np.where(~np.any(virial_test == -1e+06, axis=1))[0].tolist()
-    np.savetxt('test_has_virial_indices.txt', test_indices, fmt='%d')
-    virial_test, stress_test = virial_test[test_indices], stress_test[test_indices]
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -53,23 +45,32 @@ def calc_r2_rmse(out_file):
     return rmse_origin, rmse_data, r2_data
 
 in_file = 'gnep.in' if os.path.exists('gnep.in') else 'nep.in'
-with open(in_file, 'r') as file:
+lambda_v = 0.1
+batch = 1 if os.path.exists('gnep.in') else 1000
+with open(in_file) as file:
     for line in file:
         line = line.strip()
-        if 'lambda_v' in line:
-            if line.startswith('#'):
-                lambda_v = 0.1
-            else:
-                lambda_v = line.split()[1]
-        else:
-            lambda_v = 0.1
-        if 'batch' in line:
-            if line.startswith('#'):
-                batch = 1 if os.path.exists('gnep.in') else 1000
-            else:
-                batch = int(line.split()[1])
-        else:
-            batch = 1 if os.path.exists('gnep.in') else 1000
+        if 'lambda_v' in line and not line.startswith('#'):
+            lambda_v = line.split()[1]
+        if 'batch' in line and not line.startswith('#'):
+            batch = int(line.split()[1])
+
+train_novirial_indices, test_novirial_indices = None, None
+if lambda_v != '0':
+    if os.path.exists('virial_train.out') and -1e+06 in virial_train:
+        train_novirial_indices = np.where(np.any(virial_train == -1e+06, axis=1))[0].tolist()
+        train_indices = [i for i in range(len(virial_train)) if i not in train_novirial_indices]
+        np.savetxt('train_no_virial_indices.txt', train_novirial_indices, fmt='%d')
+        print(f"Train set has {len(train_novirial_indices)} structures without virial stress, saved to train_no_virial_indices.txt")
+        print("This index is only applicable to fullbatch training and prediction")
+        virial_train, stress_train = virial_train[train_indices], stress_train[train_indices]
+    if os.path.exists('virial_test.out') and -1e+06 in virial_test:
+        test_novirial_indices = np.where(np.any(virial_test == -1e+06, axis=1))[0].tolist()
+        test_indices = [i for i in range(len(virial_test)) if i not in test_novirial_indices]
+        np.savetxt('test_no_virial_indices.txt', test_novirial_indices, fmt='%d')
+        print(f"Test set has {len(test_novirial_indices)} structures without virial stress, saved to test_no_virial_indices.txt")
+        print("This index is only applicable to fullbatch training and prediction")
+        virial_test, stress_test = virial_test[test_indices], stress_test[test_indices]
 
 def plot_loss():
     label_Lgnep, label_Lnep = [r'$L_{\text{total}}$'], [r'$L_1$', r'$L_2$']
@@ -91,7 +92,7 @@ def plot_loss():
         else:
             legend(label_l12 + [f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
     else: 
-        if lambda_v == '0' or -1e+06 in virial_train[0, :]:
+        if lambda_v == '0' or (train_novirial_indices is not None and len(train_novirial_indices) == len(virial_train)):
             loglog(loss_L)
             loglog(loss_train)
             if os.path.exists('test.xyz'):
@@ -136,10 +137,10 @@ def plot_diagonal(data):
     def plot_value(values, color):
         columns = int(values.shape[1]//2)
         if three_six_component == 0 or data == 'energy':
-            plot(values[:, 0], values[:, 1], '.', color=color)
+            plot(values[:, 1], values[:, 0], '.', color=color)
         else:
             for i in range(columns):
-                plot(values[:, i], values[:, i+columns], '.', color=color[i % len(color)])
+                plot(values[:, i+columns], values[:, i], '.', color=color[i % len(color)])
     pass
 
     units = {'force': 'eV/Å', 'stress': 'GPa', 'energy': 'eV/atom','virial': 'eV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom'}
@@ -212,6 +213,8 @@ def plot_diagonal(data):
     pass
 
 def plot_charge():
+    if not os.path.exists('charge_train.out'):
+        return
     if batch < len(energy_train):
         print('If it is not fullbatch, please use the predicted charge_ *. out file')
         return
@@ -240,6 +243,7 @@ def plot_charge():
         non_empty_elements_charges = {element: charges for element, charges in element_charges.items() if charges}
         return non_empty_elements_charges
 
+    figure(figsize=(5.5,5))
     element_charges_train = get_charge('train', charge_train)
     if not os.path.exists("charge_test.out"):
         for element in element_charges_train.keys():
@@ -257,13 +261,18 @@ def plot_charge():
     #ylim(0, 1000)
     set_tick_params()
     tight_layout()
+    savefig(f'nep-charge.png', dpi=200)
     pass
 
 def plot_descriptor():
+    if not os.path.exists('descriptor.out'):
+        return
     from sklearn.decomposition import PCA
     reducer = PCA(n_components=2)
     reducer.fit(descriptor)
     proj = reducer.transform(descriptor)
+
+    figure(figsize=(5.5,5))
     if len(descriptor) == len(energy_train):
         sc = scatter(proj[:, 0], proj[:, 1], c=energy_train[:,1], cmap='Blues', edgecolor='grey', alpha=0.8)
         cbar = colorbar(sc, cax=gca().inset_axes([0.73, 0.95, 0.23, 0.03]), orientation='horizontal')
@@ -295,6 +304,7 @@ def plot_descriptor():
     ylabel('PC2')
     set_tick_params()
     tight_layout()
+    savefig(f'nep-descriptor.png', dpi=200)
     pass
 
 diag_types, type_vs = ['energy', 'force'], ['virial', 'stress']
@@ -309,7 +319,7 @@ def plot_base_picture():
         plot_diagonal(f'{model_type}')
         savefig(f'nep-{model_type}.png', dpi=200)
     else:
-        if lambda_v == '0' or -1e+06 in virial_train[0, :]:
+        if lambda_v == '0' or (train_novirial_indices is not None and len(train_novirial_indices) == len(virial_train)):
             figure(figsize=(11,5))
             plot_diagonals(diag_types, 1, 2, 1)
             savefig('nep-ef-diagonals.png', dpi=200)
@@ -323,11 +333,6 @@ def plot_base_picture():
             diag_types_vs = diag_types + type_vs
             plot_diagonals(diag_types_vs, 2, 2, 1)
             savefig('nep-efvs-diagonals.png', dpi=200)
-def plot_add_picture(additive):
-    if glob.glob(f'{additive}*.out'):
-        figure(figsize=(5.5,5))
-        globals()[f'plot_{additive}']()
-        savefig(f'nep-{additive}.png', dpi=200)
 
 if os.path.exists('loss.out'):
     print('NEP Train')
@@ -343,10 +348,10 @@ if os.path.exists('loss.out'):
         plot_loss()
         savefig('nep-loss.png', dpi=200)
     plot_base_picture()
-    plot_add_picture('charge')
+    plot_charge()
 else:
     print('NEP Prediction')
     plot_base_picture()
-    plot_add_picture('charge')
-    plot_add_picture('descriptor')
+    plot_charge()
+    plot_descriptor()
 
