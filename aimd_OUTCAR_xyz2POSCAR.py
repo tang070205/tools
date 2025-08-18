@@ -24,14 +24,9 @@ for line in open('xmllist'):
     except:
         screen=[screen]
     for ind,i in enumerate(screen):
-        if(i==1):
             xx,yy,zz,yz,xz,xy=-b[ind].calc.results['stress']*b[ind].get_volume()
             b[ind].info['virial']= np.array([(xx, xy, xz), (xy, yy, yz), (xz, yz, zz)])
             del b[ind].calc.results['stress']
-            b[ind].pbc=True
-            b[ind].info['config_type']=label
-            write("single-point.xyz",b[ind],append=True)
-        else:
             b[ind].pbc=True
             b[ind].info['config_type']=label
             write("aimd.xyz",b[ind],append=True)
