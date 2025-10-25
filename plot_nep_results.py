@@ -5,6 +5,7 @@ from pylab import *
 three_six_component = 0   # 0不画三六分量，1画三六分量
 use_range = 0   # 0使用默认读取文件最大值个最小值作范围，1使用对角线范围，2使用坐标轴范围
 element_force = 0   # 0不画元素力，1画元素力
+charge_sign = 1   # -1是图里电荷感觉反了，1是没反
 plot_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
        'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}
 train_colors = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan'] #力的话各取前三个
@@ -18,17 +19,8 @@ def generate_colors(data):
         else:
             return train_colors, test_colors
 
-files = ['loss.out', 'energy_train.out', 'energy_test.out', 
-         'force_train.out', 'force_test.out', 'virial_train.out', 'virial_test.out', 
-         'stress_train.out', 'stress_test.out', 'dipole_train.out', 'dipole_test.out', 
-         'polarizability_train.out', 'polarizability_test.out',
-         'charge_train.out', 'charge_test.out', 'descriptor.out'] 
-for file in files:
-    if os.path.exists(file):
-        vars()[file.split('.')[0]] = np.loadtxt(file)
 dipole_files, polar_files = glob.glob('dipole*'), glob.glob('polarizability*')
 model_type = 'dipole' if dipole_files else 'polarizability' if polar_files else None
-
 in_file = 'gnep.in' if os.path.exists('gnep.in') else 'nep.in'
 lambda_v = 0.1
 batch = 1 if os.path.exists('gnep.in') else 1000
@@ -40,22 +32,30 @@ with open(in_file) as file:
         if 'batch' in line and not line.startswith('#'):
             batch = int(line.split()[1])
 
-train_novirial_indices, test_novirial_indices = None, None
+def get_novirial_indices(path, marker='-1e+06'):
+    idx = []
+    with open(path) as f:
+        for i, line in enumerate(f):
+            *_, last = line.split()
+            if last == marker:
+                idx.append(i)
+        total = i + 1 if 'i' in locals() else 0
+    return idx, total
 if lambda_v != '0':
-    if os.path.exists('virial_train.out') and -1e+06 in virial_train:
-        train_novirial_indices = np.where(np.any(virial_train == -1e+06, axis=1))[0].tolist()
-        train_indices = [i for i in range(len(virial_train)) if i not in train_novirial_indices]
-        np.savetxt('train_no_virial_indices.txt', train_novirial_indices, fmt='%d')
-        print(f"Train set has {len(train_novirial_indices)} structures without virial stress, saved to train_no_virial_indices.txt")
-        print("This index is only applicable to fullbatch training and prediction")
-        virial_train, stress_train = virial_train[train_indices], stress_train[train_indices]
-    if os.path.exists('virial_test.out') and -1e+06 in virial_test:
-        test_novirial_indices = np.where(np.any(virial_test == -1e+06, axis=1))[0].tolist()
-        test_indices = [i for i in range(len(virial_test)) if i not in test_novirial_indices]
-        np.savetxt('test_no_virial_indices.txt', test_novirial_indices, fmt='%d')
-        print(f"Test set has {len(test_novirial_indices)} structures without virial stress, saved to test_no_virial_indices.txt")
-        print("This index is only applicable to fullbatch training and prediction")
-        virial_test, stress_test = virial_test[test_indices], stress_test[test_indices]
+    if os.path.exists('virial_train.out'):
+        train_novirial_indices, train_length = get_novirial_indices('virial_train.out')
+        if len(train_novirial_indices) > 0:
+            train_indices = [i for i in range(train_length) if i not in train_novirial_indices]
+            np.savetxt('train_no_virial_indices.txt', train_novirial_indices, fmt='%d')
+            print(f"Train set has {len(train_novirial_indices)} structures without virial stress, saved to train_no_virial_indices.txt")
+            print("This index is only applicable to fullbatch training and prediction")
+    if os.path.exists('virial_test.out'):
+        test_novirial_indices, test_length = get_novirial_indices('virial_test.out')
+        if len(test_novirial_indices) > 0:
+            test_indices = [i for i in range(test_length) if i not in test_novirial_indices]
+            np.savetxt('test_no_virial_indices.txt', test_novirial_indices, fmt='%d')
+            print(f"Test set has {len(test_novirial_indices)} structures without virial stress, saved to test_no_virial_indices.txt")
+            print("This index is only applicable to fullbatch training and prediction")
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -89,7 +89,7 @@ munits = {'force': 'meV/Å', 'stress': 'MPa', 'energy': 'meV/atom','virial': 'me
 def get_unit(data, rmse_origin):
     return munits.get(data, 'unknown unit') if rmse_origin < 1 else units.get(data, 'unknown unit')
 
-def generate_dirs(data, types, prefixes):
+def generate_legs(data, types, prefixes):
     comps = {3: ['x', 'y', 'z'], 6: ['xx', 'yy', 'zz', 'xy', 'yz', 'xz']}
     if os.path.exists(f"{data}_test.out"):
         return {typ: [f"{prefix}_{comp}" for comp in comps[3 if typ in ['force', 'dipole'] else 6]] for typ in types for prefix in prefixes}
@@ -128,6 +128,7 @@ def get_element_property(file, atoms_property):
     return non_empty_elements_lists
 
 def plot_loss():
+    loss = np.loadtxt('loss.out')
     label_Lgnep, label_Lnep = [r'$L_{\text{total}}$'], [r'$L_1$', r'$L_2$']
     label_ef, label_ef_train, label_ef_test = ['Energy', 'Force'], ['E-train', 'F-train'], ['E-test', 'F-test']
     if os.path.exists('gnep.in'):
@@ -143,11 +144,11 @@ def plot_loss():
         loglog(loss[:, 2:5])
         if os.path.exists('test.xyz'):
             loglog(loss[:, 5])
-            legend(label_l12 + [f'{model_type}-train', f'{model_type}-test'], ncol=4, frameon=False, fontsize=8.5, loc='upper right')
+            legend(label_Lnep + [f'{model_type}-train', f'{model_type}-test'], ncol=4, frameon=False, fontsize=8.5, loc='upper right')
         else:
-            legend(label_l12 + [f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
+            legend(label_Lnep + [f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
     else: 
-        if lambda_v == '0' or (train_novirial_indices is not None and len(train_novirial_indices) == len(energy_train)):
+        if lambda_v == '0' or (train_novirial_indices is not None and len(train_novirial_indices) == train_length):
             loglog(loss_L)
             loglog(loss_train)
             if os.path.exists('test.xyz'):
@@ -190,35 +191,51 @@ def plot_learning_rate():
 def plot_diagonal(data):
     color_train, color_test = generate_colors(data)
     label_unit = units.get(data, 'unknown unit')
-    train_dirs, test_dirs = generate_dirs(data, properties, prefixes[0::2]), generate_dirs(data, properties, prefixes[1::2])
-    train_dir, test_dir = train_dirs.get(data, 'unknown train_dirs'), test_dirs.get(data, 'unknown test_dirs')
+    train_legs, test_legs = generate_legs(data, properties, prefixes[0::2]), generate_legs(data, properties, prefixes[1::2])
+    train_leg, test_leg = train_legs.get(data, 'unknown train_legs'), test_legs.get(data, 'unknown test_legs')
 
+    if os.path.exists(f'{data}_train.out'):
+        globals()[f'{data}_train'] = np.loadtxt(f'{data}_train.out')
+    else:
+        print(f'{data}_train.out does not exist')
+        return
+    if data == 'virial' or data == 'stress':
+        if len(train_novirial_indices) > 0:
+            globals()[f'{data}_train'] = globals()[f'{data}_train'][train_indices]
+        else:
+            globals()[f'{data}_train'] = globals()[f'{data}_train']
     data_train = process_data(data, 'train')
     train_min, train_max = get_range(data, data_train)
     plot_value(data_train, color_train)
     origin_rmse_train, rmse_data_train, r2_data_train = calc_r2_rmse(data_train)
 
     if os.path.exists(f"{data}_test.out"):
+        globals()[f'{data}_test'] = np.loadtxt(f'{data}_test.out')
+        if data == 'virial' or data == 'stress':
+            if len(test_novirial_indices) > 0:
+                globals()[f'{data}_test'] = globals()[f'{data}_test'][test_indices]
+            else:
+                globals()[f'{data}_test'] = globals()[f'{data}_test']
         data_test = process_data(data, 'test')
         test_min, test_max = get_range(data, data_test) 
         plot_value(data_test, color_test)
         origin_rmse_test, rmse_data_test, r2_data_test = calc_r2_rmse(data_test)
         unitest = get_unit(data, origin_rmse_test)
         if three_six_component == 0 or data == 'energy':
-            legend([f'train RMSE= {rmse_data_train:.3f} {unitest} R²= {r2_data_train:.3f}', 
-                   f'test RMSE= {rmse_data_test:.3f} {unitest} R²= {r2_data_test:.3f}'], frameon=False, fontsize=10)
+            legend([f'train RMSE= {rmse_data_train:.3f} {unitest} R²= {r2_data_train:.5f}', 
+                   f'test RMSE= {rmse_data_test:.3f} {unitest} R²= {r2_data_test:.5f}'], frameon=False, fontsize=10)
         else:
-            legend(train_dir+test_dir, frameon=False, fontsize=9, ncol=2, loc='upper left', bbox_to_anchor=(0, 0.9))
-            annotate(f'train RMSE= {rmse_data_train:.3f} {unitest} R²= {r2_data_train:.3f}', xy=(0.09, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
-            annotate(f'test RMSE= {rmse_data_test:.3f} {unitest} R²= {r2_data_test:.3f}', xy=(0.09, 0.92), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            legend(train_leg+test_leg, frameon=False, fontsize=9, ncol=2, loc='upper left', bbox_to_anchor=(0, 0.9))
+            annotate(f'train RMSE= {rmse_data_train:.3f} {unitest} R²= {r2_data_train:.5f}', xy=(0.09, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'test RMSE= {rmse_data_test:.3f} {unitest} R²= {r2_data_test:.5f}', xy=(0.09, 0.92), fontsize=10, xycoords='axes fraction', ha='left', va='top')
     else:
         test_min, test_max = None, None
         unitrain = get_unit(data, origin_rmse_train)
         if three_six_component == 0 or data == 'energy':
-            legend([f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}'], frameon=False, fontsize=10)
+            legend([f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.5f}'], frameon=False, fontsize=10)
         else:
-            legend(train_dir, frameon=False, fontsize=10, loc='upper left', bbox_to_anchor=(0, 0.95))
-            annotate(f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.3f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            legend(train_leg, frameon=False, fontsize=10, loc='upper left', bbox_to_anchor=(0, 0.95))
+            annotate(f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.5f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
 
     if use_range == 0:
         range_min = train_min if test_min is None or train_min < test_min else test_min
@@ -239,29 +256,26 @@ def plot_diagonal(data):
 def plot_charge():
     if not os.path.exists('charge_train.out'):
         return
+    else:
+        charge_train = np.loadtxt('charge_train.out')
     if batch < len(energy_train):
         print('If it is not fullbatch, please use the predicted charge_ *. out file')
         return
     
     import seaborn as sns
-    
-    def sturges_bins(data):
-        n = len(data)
-        bins = int(math.log2(n) + 1)
-        return max(bins, 1)
-
     figure(figsize=(5.5,5))
-    element_charges_train = get_element_property('train', -charge_train)
-    if not os.path.exists("charge_test.out"):
-        for element in element_charges_train.keys():
-            sns.histplot(element_charges_train[element], bins=500, alpha=0.6, label=element, kde=True, line_kws={'lw': 1})
-        legend(frameon=False, fontsize=10, loc='upper right')
-    else:
-        element_charges_test = get_element_property('test', -charge_test)
+    element_charges_train = get_element_property('train', -charge_train) if charge_sign == -1 else get_element_property('train', charge_train)
+    if os.path.exists("charge_test.out"):
+        charge_test = np.loadtxt('charge_test.out')
+        element_charges_test = get_element_property('test', -charge_test) if charge_sign == -1 else get_element_property('test', charge_test)
         for element_train, element_test in zip(element_charges_train.keys(), element_charges_test.keys()):
             sns.histplot(element_charges_train[element_train], bins=500, alpha=0.6, label=f'{element_train}-train', kde=True, line_kws={'lw': 1})
             sns.histplot(element_charges_test[element_test], bins=500, alpha=0.6, label=f'{element_test}-test', kde=True, line_kws={'lw': 1})
         legend(ncol=2, frameon=False, fontsize=10, loc='upper right')
+    else:
+        for element in element_charges_train.keys():
+            sns.histplot(element_charges_train[element], bins=500, alpha=0.6, label=element, kde=True, line_kws={'lw': 1})
+        legend(frameon=False, fontsize=10, loc='upper right')
 
     xlabel('Charge')
     ylabel('Frequency')
@@ -274,6 +288,8 @@ def plot_charge():
 def plot_descriptor():
     if not os.path.exists('descriptor.out'):
         return
+    else:
+        descriptor = np.loadtxt('descriptor.out')
     from sklearn.decomposition import PCA
     reducer = PCA(n_components=2)
     reducer.fit(descriptor)
@@ -352,7 +368,7 @@ def plot_base_picture():
         plot_diagonal(f'{model_type}')
         savefig(f'nep-{model_type}-diagonal.png', dpi=200)
     else:
-        if lambda_v == '0' or (train_novirial_indices is not None and len(train_novirial_indices) == len(energy_train)):
+        if lambda_v == '0' or (train_novirial_indices is not None and len(train_novirial_indices) == train_length):
             figure(figsize=(11,5))
             plot_diagonals(base_diag_types[:2], 1, 2, 1)
             savefig('nep-ef-diagonals.png', dpi=200)
