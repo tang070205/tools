@@ -2,7 +2,7 @@ from ase.io import read, write
 import os, sys, shutil, subprocess
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         print("Usage: python3 aimd_OUTCAR_xyz2POSCAR.py <xyz_file> <number_of_perturbations> vasp/abacus")
         sys.exit(1)
 if __name__ == "__main__":
