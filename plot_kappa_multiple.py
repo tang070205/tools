@@ -26,7 +26,7 @@ one_lines = int(run_time / hnemd_sample)
 kappa = np.loadtxt('kappa.out', max_rows = int(sys.argv[1]) * int(one_lines))
 file_datas = np.split(kappa, int(sys.argv[1]))
 t = np.arange(1, one_lines + 1) * 0.001 * time_step
-xlimit = int(run_time * 0.001 * time_step)
+xlimit = int(run_time * time_step)
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
