@@ -101,7 +101,7 @@ savefig('phonon.png', dpi=150, bbox_inches='tight')
 
 group_velocity = np.gradient(nu, whole_kpaths, axis=0)
 figure(figsize=(9, 8))
-plot(nu.flatten(), group_velocity.flatten()/10, '.')
+plot(nu.flatten(), group_velocity.flatten() / 5 * pi, '.')
 xlim([0, 35])
 gca().set_xticks(linspace(0, 35, 8))
 ylim([0, 20])
