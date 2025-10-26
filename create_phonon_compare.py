@@ -1,14 +1,14 @@
-import os
+import os, re
 import numpy as np
 from pylab import *
 from ase.io import read,write
 
 cx,cy,cz = 20, 20, 1   # 超胞参数
-npoints = 400   
-special_points = {'G': [0, 0, 0], 'M': [0.5, 0, 0], 'K': [0.3333, 0.3333, 0], 'G': [0, 0, 0]}  # 高对称点坐标，同样vaspkit305提供的文件里有
+npoints = 343 
+special_points = {'G': [0, 0, 0], 'K': [0.3333, 0.3333, 0], 'M': [0.5, 0, 0]}  # 高对称点坐标，同样vaspkit305提供的文件里有
 points_path = ['GMKG']     #高对称点路径，可以写断点比如['GM', 'KG']，最后还要设置横坐标的标签gca().set_xticklabels([])
 
-uc = read('POSCAR-unitcell') #xyz、cif文件也可以
+uc = read('POSCAR') #xyz、cif文件也可以
 struc = uc * (cx,cy,cz)
 write("model.xyz", struc)
 
@@ -25,6 +25,21 @@ lengths = [len(path) - 1 for path in points_path]
 path_ratio = [float(length / sum(lengths)) for length in lengths]
 if npoints % sum(lengths) != 0:
     raise ValueError(f"npoints 建议是 {sum(lengths) * 100} 的倍数")
+
+def generate_set_path(points_path):
+    segs = []
+    for seg in points_path:
+        tokens = re.findall(r'([A-Za-z])(\d*)', seg.upper())
+        segs.append([r'$\Gamma$' if L == 'G' else f'${L}_{{{N}}}$' if N else L for L, N in tokens])
+
+    labels = segs[0][:]
+    for i in range(1, len(segs)):
+        prev_tail = labels[-1]
+        curr_head = segs[i][0]
+        labels[-1] = f'{prev_tail}|{curr_head}'
+        labels.extend(segs[i][1:])
+
+    return labels
 
 gpumd_kpts, kpaths, sym_points_list, labels_list = [], [], [], []
 for i in range(npaths):
@@ -53,13 +68,12 @@ for i in range(len(kpaths)):
         adjusted_sym_points = [x + origin_sym_points for x in sym_points_list[i]]
         whole_sym_points.extend(adjusted_sym_points)
         origin_sym_points += sym_points_list[i][-1]
-whole_sym_points = sorted(set(whole_sym_points))
 
 data = np.loadtxt("omega2.out")
 for i in range(len(data)):
     for j in range(len(data[0])):
         data[i, j] = np.sqrt(abs(data[i, j])) / (2 * np.pi) * np.sign(data[i, j])
-nu = data
+nep = data
 
 """ #qe加这段,vasp不用
 data = np.loadtxt("*.freq.gp")
@@ -76,39 +90,32 @@ data[:, 1] = data[:, 1] / 33.35641
 np.savetxt("phonon.out", data, comments='', fmt='%1.6f')
 """
 #没有phonopy-bandplot --gnuplot > phonon.out这样生成phonon.out
-figure(figsize=(9, 8))
+figure(figsize=(8, 7))
 if os.path.exists('phonon.out'):
-    data_vasp = np.loadtxt('phonon.out')
-    vasp_path = data_vasp[:,0] / max(data_vasp[:,0]) * whole_kpaths[-1]
-    scatter(vasp_path, data_vasp[:,1], marker='.', color='C1', linewidths=0 ,s=16)
-plot(whole_kpaths, nu, color='C0', lw=1)
+    dft = np.loadtxt('phonon.out')
+    idx0 = np.where(dft[:, 0] == 0.000000)[0]
+    idx0 = np.append(idx0, len(dft))
+    blocks = [dft[:, 1][idx0[i]:idx0[i+1]] for i in range(len(idx0)-1)]
+    DFT = np.column_stack(blocks)
+    dft_path = dft[idx0[0]:idx0[1],0] / dft[-1,0] * whole_kpaths[-1]
+    plot(dft_path, DFT, color='C1', lw=1)
+
+plot(whole_kpaths, nep, color='C0', lw=1)
 xlim([0, whole_kpaths[-1]])
-for sym_point in whole_sym_points[1:-1]:
+for sym_point in whole_sym_points[1:]:
     plt.axvline(sym_point, color='black', linestyle='--')
 gca().set_xticks(whole_sym_points)
-#如果存在断点，这里需要修改，比如['GM', 'KG']这里要写[r'$\Gamma$', 'M|K', r'$\Gamma$']
-gca().set_xticklabels([r'$\Gamma$', 'M', 'K', r'$\Gamma$'])
-ylim([0, 30])
-gca().set_yticks(linspace(0,30,7))
+gca().set_xticklabels(generate_set_path(points_path))
+ylim([0, 35])
+gca().set_yticks(linspace(0,35,8))
 ylabel(r'$\nu$ (THz)',fontsize=15)
 tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
 tick_params(axis='y', which='both', direction='in', left=True, right=True)
 if os.path.exists('phonon.out'):
-    legend(['DFT', 'NEP'])
+    plot([], [], color='C1', lw=1, label='DFT')
+    plot([], [], color='C0', lw=1, label='NEP')
+    legend()
 else:
-    legend(['NEP'])
+    plot([], [], color='C1', lw=1, label='NEP')
+    legend()
 savefig('phonon.png', dpi=150, bbox_inches='tight')
-
-group_velocity = np.gradient(nu, whole_kpaths, axis=0)
-figure(figsize=(9, 8))
-plot(nu.flatten(), group_velocity.flatten() / 5 * pi, '.')
-xlim([0, 35])
-gca().set_xticks(linspace(0, 35, 8))
-ylim([0, 20])
-gca().set_yticks(linspace(0, 20, 6))
-xlabel(r'$\nu$ (THz)', fontsize=15)
-ylabel(r'Group Velocity (km/s)', fontsize=15)
-tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
-tick_params(axis='y', which='both', direction='in', left=True, right=True)
-savefig('phonon_with_group_velocity.png', dpi=150, bbox_inches='tight')
-
