@@ -6,7 +6,7 @@ from ase.io import read, write
 #xyz_file和des_file顺序要对应，des_file可以没有(用"0"代替)
 nep_name = "nep.txt"
 all_points_plot = 'combine' # combine表示将所有点放在一起观察，separate表示分开观察
-sel_des_method = 'after' # after表示在降维后后选择结构，before表示在降维前选择结构
+sel_des_method = 'before' # after表示在降维后后选择结构，before表示在降维前选择结构
 xyz_file = ["train.xyz", "test.xyz"]
 des_file = ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"]
 all_color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 
@@ -76,13 +76,13 @@ def pick_points(proj, range_x, range_y):
             pick_strucs.append(i)
     return pick_strucs
 
-def get_energies_per_atom(strucs):
+def get_energies_per_atom(atoms):
     energies_per_atom = []
-    for atoms in strucs:
-        if not atoms.has('energy'):
-            energy_per_atom = atoms.info.get('Energy') / len(atoms)
+    for i in range(len(atoms)):
+        if atoms[i].get_potential_energy() is not None:
+            energy_per_atom = atoms[i].get_potential_energy() / len(atoms[i])
         else:
-            energy_per_atom = atoms.get_potential_energy() / len(atoms)
+            print("Some structures do not have energy information.")
         energies_per_atom.append(energy_per_atom)
     return energies_per_atom
 
