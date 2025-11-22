@@ -28,9 +28,11 @@ with open(in_file) as file:
     for line in file:
         line = line.strip()
         if 'lambda_v' in line and not line.startswith('#'):
-            lambda_v = line.split()[1]
+            lambda_v = float(line.split()[1])
         if 'batch' in line and not line.startswith('#'):
             batch = int(line.split()[1])
+        if 'prediction' in line and not line.startswith('#'):
+            batch = 1000000
 
 def get_novirial_indices(path, marker='-1e+06'):
     idx = []
@@ -41,6 +43,9 @@ def get_novirial_indices(path, marker='-1e+06'):
                 idx.append(i)
         total = i + 1 if 'i' in locals() else 0
     return idx, total
+
+train_novirial_indices, test_novirial_indices = None, None
+train_length, test_length = 0, 0
 if lambda_v != '0':
     if os.path.exists('virial_train.out'):
         train_novirial_indices, train_length = get_novirial_indices('virial_train.out')
@@ -75,7 +80,7 @@ def calc_r2_rmse(out_file):
     rmse_data = rmse_origin * 1000 if rmse_origin < 1 else rmse_origin
     return rmse_origin, rmse_data, r2_data
 
-def plot_value(values, color):
+def plot_value(values, color, data):
     columns = int(values.shape[1]//2)
     if three_six_component == 0 or data == 'energy':
         plot(values[:, 1], values[:, 0], '.', color=color)
@@ -129,26 +134,27 @@ def get_element_property(file, atoms_property):
 
 def plot_loss():
     loss = np.loadtxt('loss.out')
-    label_Lgnep, label_Lnep = [r'$L_{\text{total}}$'], [r'$L_1$', r'$L_2$']
+    label_Lgnep, label_Lnep = [r'$L_{\text{total}}$'], [r'$L_1$', r'$L_2$'] if loss[-1,2] != 0 else [r'$L_2$']
     label_ef, label_ef_train, label_ef_test = ['Energy', 'Force'], ['E-train', 'F-train'], ['E-test', 'F-test']
     if os.path.exists('gnep.in'):
         loss_L, learning_rate = loss[:, 1], loss[:, 8]
         loss_train, loss_train_v = loss[:, 2:4], loss[:, 2:5]
         loss_test, loss_test_v= loss[:, 5:7], loss[:, 5:8]
     else:
-        loss_L = loss[:, 2:4]
+        loss_L = loss[:, 2:4] if loss[-1,2] != 0 else loss[:, 3]
         loss_train, loss_train_v = loss[:, 4:6], loss[:, 4:7]
         loss_test, loss_test_v = loss[:, 7:9], loss[:, 7:10]
     
     if loss.shape[1] < 7:
-        loglog(loss[:, 2:5])
+        loglog(loss_L)
+        loglog(loss[:, 4])
         if os.path.exists('test.xyz'):
             loglog(loss[:, 5])
-            legend(label_Lnep + [f'{model_type}-train', f'{model_type}-test'], ncol=4, frameon=False, fontsize=8.5, loc='upper right')
+            legend(label_Lnep + [f'{model_type}-train', f'{model_type}-test'], ncol= 1, frameon=False, fontsize=13, loc='upper right')
         else:
-            legend(label_Lnep + [f'{model_type}'], ncol=3, frameon=False, fontsize=10, loc='upper right')
+            legend(label_Lnep + [f'{model_type}'], ncol= 3 if loss[-1,2] != 0 else 2, frameon=False, fontsize=13, loc='upper right')
     else: 
-        if lambda_v == '0' or (train_novirial_indices is not None and len(train_novirial_indices) == train_length):
+        if lambda_v == 0 or (train_novirial_indices is not None and len(train_novirial_indices) == train_length):
             loglog(loss_L)
             loglog(loss_train)
             if os.path.exists('test.xyz'):
@@ -157,34 +163,35 @@ def plot_loss():
                 legend(loss_label, ncol=3, frameon=False, fontsize=10, loc='lower left')
             else:
                 loss_label = label_Lgnep + label_ef if os.path.exists('gnep.in') else label_Lnep + label_ef
-                legend(loss_label, ncol=4, frameon=False, fontsize=8, loc='upper right')
+                legend(loss_label, ncol=1, frameon=False, fontsize=10, loc='lower left')
         else:
             loglog(loss_L)
             loglog(loss_train_v)
             if os.path.exists('test.xyz'):
                 loglog(loss_test_v)
                 loss_label_v = label_Lgnep + label_ef_train + ['V-train'] + label_ef_test + ['V-test'] if os.path.exists('gnep.in') else label_Lnep + label_ef_train + ['V-train'] + label_ef_test + ['V-test']
-                legend(loss_label_v, ncol=2, frameon=False, fontsize=8, loc='lower left')
+                legend(loss_label_v, ncol=2, frameon=False, fontsize=9, loc='lower left')
             else:
                 loss_label_v = label_Lgnep + label_ef + ['Virial'] if os.path.exists('gnep.in') else label_Lnep + label_ef + ['Virial']
-                legend(loss_label_v, ncol=5, frameon=False, fontsize=8, loc='upper right')
+                legend(loss_label_v, ncol=1, frameon=False, fontsize=10, loc='lower left')
 
     set_tick_params()
     if os.path.exists('gnep.in'):
-        xlabel('Epoch')
+        xlabel('Epoch', fontsize=15); xticks(fontsize=12)
     else:
-        xlabel('Generation/100')
-    ylabel('Loss')
+        xlabel('Generation/100', fontsize=15); xticks(fontsize=12)
+    ylabel('Loss', fontsize=15); yticks(fontsize=12)
     tight_layout()
     pass
 
 def plot_learning_rate():
+    loss = np.loadtxt('loss.out')
     plot(range(1, len(loss) + 1), loss[:, 8])
     set_tick_params()
     #xlim(0, 1000)
     #ylim(0.9, 1)
-    xlabel('Epoch')
-    ylabel('Learning Rate')
+    xlabel('Epoch', fontsize=15)
+    ylabel('Learning Rate', fontsize=15)
     tight_layout()
     pass
 
@@ -200,42 +207,43 @@ def plot_diagonal(data):
         print(f'{data}_train.out does not exist')
         return
     if data == 'virial' or data == 'stress':
-        if len(train_novirial_indices) > 0:
+        if train_novirial_indices is not None and len(train_novirial_indices) > 0:
             globals()[f'{data}_train'] = globals()[f'{data}_train'][train_indices]
-        else:
-            globals()[f'{data}_train'] = globals()[f'{data}_train']
     data_train = process_data(data, 'train')
     train_min, train_max = get_range(data, data_train)
-    plot_value(data_train, color_train)
+    plot_value(data_train, color_train, data)
     origin_rmse_train, rmse_data_train, r2_data_train = calc_r2_rmse(data_train)
 
     if os.path.exists(f"{data}_test.out"):
         globals()[f'{data}_test'] = np.loadtxt(f'{data}_test.out')
         if data == 'virial' or data == 'stress':
-            if len(test_novirial_indices) > 0:
+            if test_novirial_indices is not None and len(test_novirial_indices) > 0:
                 globals()[f'{data}_test'] = globals()[f'{data}_test'][test_indices]
-            else:
-                globals()[f'{data}_test'] = globals()[f'{data}_test']
         data_test = process_data(data, 'test')
         test_min, test_max = get_range(data, data_test) 
-        plot_value(data_test, color_test)
+        plot_value(data_test, color_test, data)
         origin_rmse_test, rmse_data_test, r2_data_test = calc_r2_rmse(data_test)
         unitest = get_unit(data, origin_rmse_test)
         if three_six_component == 0 or data == 'energy':
-            legend([f'train RMSE= {rmse_data_train:.3f} {unitest} R²= {r2_data_train:.5f}', 
-                   f'test RMSE= {rmse_data_test:.3f} {unitest} R²= {r2_data_test:.5f}'], frameon=False, fontsize=10)
+            legend([f'train RMSE= {rmse_data_train:.3f} {unitest}', f'test RMSE= {rmse_data_test:.3f} {unitest}'], frameon=False, fontsize=13)
+            annotate(f'train R²= {r2_data_train:.5f}', xy=(0.55, 0.12), fontsize=14, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'test R²= {r2_data_test:.5f}', xy=(0.55, 0.07), fontsize=14, xycoords='axes fraction', ha='left', va='top')
         else:
-            legend(train_leg+test_leg, frameon=False, fontsize=9, ncol=2, loc='upper left', bbox_to_anchor=(0, 0.9))
-            annotate(f'train RMSE= {rmse_data_train:.3f} {unitest} R²= {r2_data_train:.5f}', xy=(0.09, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
-            annotate(f'test RMSE= {rmse_data_test:.3f} {unitest} R²= {r2_data_test:.5f}', xy=(0.09, 0.92), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            legend(train_leg+test_leg, frameon=False, fontsize=11, ncol=2, loc='upper left', bbox_to_anchor=(0, 0.9), columnspacing=0.2)
+            annotate(f'train RMSE= {rmse_data_train:.3f} {unitest}', xy=(0.09, 0.97), fontsize=13, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'test RMSE= {rmse_data_test:.3f} {unitest}', xy=(0.09, 0.92), fontsize=13, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'train R²= {r2_data_train:.5f}', xy=(0.55, 0.12), fontsize=14, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'test R²= {r2_data_test:.5f}', xy=(0.55, 0.07), fontsize=14, xycoords='axes fraction', ha='left', va='top')
     else:
         test_min, test_max = None, None
         unitrain = get_unit(data, origin_rmse_train)
         if three_six_component == 0 or data == 'energy':
-            legend([f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.5f}'], frameon=False, fontsize=10)
+            legend([f'train RMSE= {rmse_data_train:.3f} {unitrain}'], frameon=False, fontsize=14)
+            annotate(f'train R²= {r2_data_train:.5f}', xy=(0.55, 0.07), fontsize=14, xycoords='axes fraction', ha='left', va='top')
         else:
-            legend(train_leg, frameon=False, fontsize=10, loc='upper left', bbox_to_anchor=(0, 0.95))
-            annotate(f'train RMSE= {rmse_data_train:.3f} {unitrain} R²= {r2_data_train:.5f}', xy=(0.11, 0.97), fontsize=10, xycoords='axes fraction', ha='left', va='top')
+            legend(train_leg, frameon=False, fontsize=13, loc='upper left', bbox_to_anchor=(0, 0.95))
+            annotate(f'train RMSE= {rmse_data_train:.3f} {unitrain}', xy=(0.11, 0.97), fontsize=14, xycoords='axes fraction', ha='left', va='top')
+            annotate(f'train R²= {r2_data_train:.5f}', xy=(0.55, 0.07), fontsize=14, xycoords='axes fraction', ha='left', va='top')
 
     if use_range == 0:
         range_min = train_min if test_min is None or train_min < test_min else test_min
@@ -244,12 +252,12 @@ def plot_diagonal(data):
         range_min, range_max = plot_range.get(data, (None, None))
     elif use_range == 2:
         range_min, range_max = plot_range.get(data, (None, None))
-        xlim(range_min, range_max)
-        ylim(range_min, range_max)
+    xlim(range_min, range_max); xticks(fontsize=13)
+    ylim(range_min, range_max); yticks(fontsize=13)
     plot(linspace(range_min, range_max), linspace(range_min, range_max), 'k--', zorder=0)
     set_tick_params()
-    xlabel(f"DFT {data} ({label_unit})")
-    ylabel(f"NEP {data} ({label_unit})")
+    xlabel(f"DFT {data} ({label_unit})", fontsize=15)
+    ylabel(f"NEP {data} ({label_unit})", fontsize=15)
     tight_layout()
     pass
 
@@ -263,22 +271,22 @@ def plot_charge():
         return
     
     import seaborn as sns
-    figure(figsize=(5.5,5))
-    element_charges_train = get_element_property('train', -charge_train) if charge_sign == -1 else get_element_property('train', charge_train)
+    figure(figsize=(6,5))
+    element_charges_train = get_element_property('train', charge_train * charge_sign) 
     if os.path.exists("charge_test.out"):
         charge_test = np.loadtxt('charge_test.out')
-        element_charges_test = get_element_property('test', -charge_test) if charge_sign == -1 else get_element_property('test', charge_test)
+        element_charges_test = get_element_property('test', charge_test * charge_sign)
         for element_train, element_test in zip(element_charges_train.keys(), element_charges_test.keys()):
-            sns.histplot(element_charges_train[element_train], bins=500, alpha=0.6, label=f'{element_train}-train', kde=True, line_kws={'lw': 1})
-            sns.histplot(element_charges_test[element_test], bins=500, alpha=0.6, label=f'{element_test}-test', kde=True, line_kws={'lw': 1})
-        legend(ncol=2, frameon=False, fontsize=10, loc='upper right')
+            sns.histplot(element_charges_train[element_train], bins=50, alpha=0.6, label=f'{element_train}-train', kde=True, line_kws={'lw': 1})
+            sns.histplot(element_charges_test[element_test], bins=50, alpha=0.6, label=f'{element_test}-test', kde=True, line_kws={'lw': 1})
+        legend(ncol=2, frameon=False, fontsize=12, loc='upper right')
     else:
         for element in element_charges_train.keys():
             sns.histplot(element_charges_train[element], bins=500, alpha=0.6, label=element, kde=True, line_kws={'lw': 1})
-        legend(frameon=False, fontsize=10, loc='upper right')
+        legend(frameon=False, fontsize=12, loc='upper right')
 
-    xlabel('Charge')
-    ylabel('Frequency')
+    xlabel('Charge', fontsize=15); xticks(fontsize=12)
+    ylabel('Frequency', fontsize=15); yticks(fontsize=12)
     #ylim(0, 1000)
     set_tick_params()
     tight_layout()
@@ -368,7 +376,7 @@ def plot_base_picture():
         plot_diagonal(f'{model_type}')
         savefig(f'nep-{model_type}-diagonal.png', dpi=200)
     else:
-        if lambda_v == '0' or (train_novirial_indices is not None and len(train_novirial_indices) == train_length):
+        if lambda_v == 0 or (train_novirial_indices is not None and len(train_novirial_indices) == train_length):
             figure(figsize=(11,5))
             plot_diagonals(base_diag_types[:2], 1, 2, 1)
             savefig('nep-ef-diagonals.png', dpi=200)
@@ -394,12 +402,16 @@ if os.path.exists('loss.out'):
         figure(figsize=(5.5,5))
         plot_loss()
         savefig('nep-loss.png', dpi=200)
-    plot_base_picture()
-    plot_charge()
-    plot_element_force() if element_force == 1 else None
+    if element_force == 1:
+        plot_element_force()
+    else:
+        plot_base_picture()
+        plot_charge()
 else:
     print('NEP Prediction')
-    plot_base_picture()
-    plot_charge()
-    plot_descriptor()
-    plot_element_force() if element_force == 1 else None
+    if element_force == 1:
+        plot_element_force()
+    else:
+        plot_base_picture()
+        plot_charge()
+        plot_descriptor()
