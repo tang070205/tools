@@ -4,10 +4,10 @@ from pylab import *
 from ase.io import read,write
 
 cx,cy,cz = 20, 20, 1   # 超胞参数
-npoints = 343 
+npoints = 300
 special_points = {'G': [0, 0, 0], 'K': [0.3333, 0.3333, 0], 'M': [0.5, 0, 0]}  # 高对称点坐标，同样vaspkit305提供的文件里有
 points_path = ['GMKG']     #高对称点路径，可以写断点比如['GM', 'KG']，最后还要设置横坐标的标签gca().set_xticklabels([])
-
+dft_file = 'phonon.out'  # DFT计算得到的声子频率文件，没有phonopy-bandplot --gnuplot > phonon.out这样生成phonon.out
 uc = read('POSCAR') #xyz、cif文件也可以
 struc = uc * (cx,cy,cz)
 write("model.xyz", struc)
@@ -89,10 +89,10 @@ data = np.loadtxt("phonon_data.txt")
 data[:, 1] = data[:, 1] / 33.35641
 np.savetxt("phonon.out", data, comments='', fmt='%1.6f')
 """
-#没有phonopy-bandplot --gnuplot > phonon.out这样生成phonon.out
+
 figure(figsize=(8, 7))
-if os.path.exists('phonon.out'):
-    dft = np.loadtxt('phonon.out')
+if os.path.exists(dft_file):
+    dft = np.loadtxt(dft_file)
     idx0 = np.where(dft[:, 0] == 0.000000)[0]
     idx0 = np.append(idx0, len(dft))
     blocks = [dft[:, 1][idx0[i]:idx0[i+1]] for i in range(len(idx0)-1)]
@@ -102,7 +102,7 @@ if os.path.exists('phonon.out'):
 
 plot(whole_kpaths, nep, color='C0', lw=1)
 xlim([0, whole_kpaths[-1]])
-for sym_point in whole_sym_points[1:]:
+for sym_point in whole_sym_points[1:-1]:
     plt.axvline(sym_point, color='black', linestyle='--')
 gca().set_xticks(whole_sym_points)
 gca().set_xticklabels(generate_set_path(points_path))
@@ -111,11 +111,11 @@ gca().set_yticks(linspace(0,35,8))
 ylabel(r'$\nu$ (THz)',fontsize=15)
 tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
 tick_params(axis='y', which='both', direction='in', left=True, right=True)
-if os.path.exists('phonon.out'):
+if os.path.exists(dft_file):
     plot([], [], color='C1', lw=1, label='DFT')
     plot([], [], color='C0', lw=1, label='NEP')
     legend()
 else:
-    plot([], [], color='C1', lw=1, label='NEP')
+    plot([], [], color='C0', lw=1, label='NEP')
     legend()
 savefig('phonon.png', dpi=150, bbox_inches='tight')
