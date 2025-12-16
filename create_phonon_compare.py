@@ -6,7 +6,7 @@ from ase.io import read,write
 cx,cy,cz = 20, 20, 1   # 超胞参数
 npoints = 300
 special_points = {'G': [0, 0, 0], 'K': [0.3333, 0.3333, 0], 'M': [0.5, 0, 0]}  # 高对称点坐标，同样vaspkit305提供的文件里有
-points_path = ['GMKG']     #高对称点路径，可以写断点比如['GM', 'KG']，最后还要设置横坐标的标签gca().set_xticklabels([])
+points_path = ['GMKG']     #高对称点路径，可以写断点比如['GM', 'KG']
 dft_file = 'phonon.out'  # DFT计算得到的声子频率文件，没有phonopy-bandplot --gnuplot > phonon.out这样生成phonon.out
 uc = read('POSCAR') #xyz、cif文件也可以
 struc = uc * (cx,cy,cz)
@@ -65,7 +65,7 @@ for i in range(len(kpaths)):
         adjusted_kpaths = [x + origin_kpaths for x in kpaths[i]]
         whole_kpaths.extend(adjusted_kpaths)
         origin_kpaths += kpaths[i][-1]
-        adjusted_sym_points = [x + origin_sym_points for x in sym_points_list[i]]
+        adjusted_sym_points = [x + origin_sym_points for x in sym_points_list[i][1:]]
         whole_sym_points.extend(adjusted_sym_points)
         origin_sym_points += sym_points_list[i][-1]
 
