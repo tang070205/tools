@@ -7,7 +7,7 @@ label='aimd'
 os.system("find . -name vasprun.xml > xmllist")
 os.system("if [ -f 'screen_tmp' ]; then rm screen_tmp;fi")
 os.system("if [ -f 'aimd.xyz' ]; then rm aimd.xyz;fi")
-os.system("if [ -f 'dump.xyz' ]; then rm dump.xyz;fi")
+os.system("if [ -f 'aimd_subset*.xyz' ]; then rm aimd_subset*.xyz;fi")
 os.system("if [ -d 'train_folders' ]; then rm -r train_folders; fi")
 for line in open('xmllist'):
     xml=line.strip('\n')
@@ -42,63 +42,32 @@ if __name__ == "__main__":
 
 number_structures = int(sys.argv[1])
 original_cwd = os.getcwd()
+aimd = read("aimd.xyz", index=":")
+interval = len(aimd) // number_structures
+first_indices = len(aimd) - interval * (number_structures - 1) - 1
+for i in range(number_structures):
+    subset = aimd[first_indices + i * interval]
+    write(f"aimd_subset_{interval}.xyz", subset, append=True)
 
-with open("aimd.xyz", "r") as input_file:
-    first_line = input_file.readline()
-    structure_lines = int(first_line) + 2
-    total_lines = sum(1 for _ in input_file) + 1
-    structures_count = total_lines // structure_lines
+if not os.path.exists('aimd_subset_train_folders'):
+    os.makedirs('aimd_subset_train_folders')
+for i in range(number_structures):
+    folder_name = f'aimd_subset_{i+1}'
+    folder_path = os.path.join('aimd_subset_train_folders', folder_name)
+    os.makedirs(folder_path)
 
-output_lines = []
-with open("aimd.xyz", "r") as input_file:
-    lines = input_file.readlines()
-    for i in range(number_structures):
-        start_index = structure_lines * (structures_count // number_structures * (i+1) - 1)
-        output_lines += lines[start_index:start_index + structure_lines]
-
-with open("dump.xyz", "w") as output_file:
-    output_file.writelines(output_lines)
-
-def create_train_folders():
-    if not os.path.exists('train_folders'):
-        os.makedirs('train_folders')
-    for i in range(number_structures):
-        folder_name = f'aimd-{i+1}'
-        folder_path = os.path.join('train_folders', folder_name)
-        os.makedirs(folder_path)
-
-def split_xyz():
-    with open('dump.xyz', 'r') as file:
-        lines = file.readlines()  
-    num_groups = len(lines) // structure_lines
-    for i in range(num_groups):
-        start_index = i * structure_lines
-        end_index = start_index + structure_lines
-        group_lines = lines[start_index:end_index]
-        group_filepath = os.path.join('train_folders', f'aimd-{i + 1}', f'aimd-{i + 1}.xyz')
-        with open(group_filepath, 'w') as group_file:
-            group_file.writelines(group_lines)
-
-def convert_xyz_to_poscar():
-    train_folder_path = os.path.join(os.getcwd(), 'train_folders')
-    folders = os.listdir(train_folder_path)
-    for folder_name in folders:
-        folder_path = os.path.join(train_folder_path, folder_name)
-        os.chdir(folder_path)
-        xyz_file = next((f for f in os.listdir(folder_path) if f.endswith('.xyz')), None)
-        write("POSCAR", read(xyz_file, format="extxyz"))
-
-create_train_folders()
-split_xyz()
-convert_xyz_to_poscar()
+aimd_subset = read("aimd_subset_*.xyz", index=":")
+for i in range(number_structures):
+    subset_filepath = os.path.join('aimd_subset_train_folders', f'aimd_subset_{i+1}', f'subset.xyz')
+    write(subset_filepath, aimd_subset[i])
 
 os.chdir(original_cwd)
-for j in range(number_structures):
-    folder_name = f'aimd-{j+1}' 
-    folder_path = os.path.join('train_folders', folder_name)  
-    shutil.copyfile('INCAR-single', os.path.join(folder_path, 'INCAR'))  #INCAR-single是计算单点能的INCAR
-    os.chdir(folder_path) 
-    vaspkit_command = "vaspkit -task 102 -kpr 0.03"  # 此处采用vaspkit生成KPOINTS和POTCAR，
+for i in range(number_structures):
+    folder_name = f'aimd_subset_{i+1}' 
+    folder_path = os.path.join('aimd_subset_train_folders', folder_name)  
+    shutil.copy('INCAR-scf', os.path.join(folder_path, 'INCAR'))  #INCAR-scf是计算单点能的INCAR
+    os.chdir(folder_path)
+    write("POSCAR", read('subset.xyz', format="extxyz"))
+    vaspkit_command = "vaspkit -task 102 -kpr 0.03"  # 此处采用vaspkit生成KPOINTS和POTCAR
     subprocess.run(vaspkit_command, shell=True)  
     os.chdir(original_cwd)
-
