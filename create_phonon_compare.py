@@ -75,21 +75,6 @@ for i in range(len(data)):
         data[i, j] = np.sqrt(abs(data[i, j])) / (2 * np.pi) * np.sign(data[i, j])
 nep = data
 
-""" #qe加这段,vasp不用
-data = np.loadtxt("*.freq.gp")
-x = data[:, 0]
-y_columns = data[:, 1:]
-new_data = []
-for i in range(y_columns.shape[1]):
-    matrix = np.column_stack((x, y_columns[:, i]))
-    new_data.append(matrix)
-final_matrix = np.concatenate(new_data)
-np.savetxt("phonon_data.txt", final_matrix, comments='', fmt='%1.6f')
-data = np.loadtxt("phonon_data.txt")
-data[:, 1] = data[:, 1] / 33.35641
-np.savetxt("phonon.out", data, comments='', fmt='%1.6f')
-"""
-
 figure(figsize=(8, 7))
 if os.path.exists(dft_file):
     dft = np.loadtxt(dft_file)
@@ -106,8 +91,8 @@ for sym_point in whole_sym_points[1:-1]:
     plt.axvline(sym_point, color='black', linestyle='--')
 gca().set_xticks(whole_sym_points)
 gca().set_xticklabels(generate_set_path(points_path))
-ylim([0, 35])
-gca().set_yticks(linspace(0,35,8))
+ylim([0, 10])
+gca().set_yticks(linspace(0,10,6))
 ylabel(r'$\nu$ (THz)',fontsize=15)
 tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
 tick_params(axis='y', which='both', direction='in', left=True, right=True)
@@ -118,4 +103,17 @@ if os.path.exists(dft_file):
 else:
     plot([], [], color='C0', lw=1, label='NEP')
     legend()
-savefig('phonon.png', dpi=150, bbox_inches='tight')
+savefig('phonon.png', dpi=300, bbox_inches='tight')
+
+group_velocity = np.gradient(nep, whole_kpaths, axis=0)
+figure(figsize=(9, 8))
+plot(nep.flatten(), np.abs(group_velocity.flatten()) / 5 * np.pi, '.')
+xlim([0, 10])
+gca().set_xticks(linspace(0, 10, 6))
+ylim([0, 10])
+gca().set_yticks(linspace(0, 10, 6))
+xlabel(r'$\nu$ (THz)', fontsize=15)
+ylabel(r'Group Velocity (km/s)', fontsize=15)
+tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+tick_params(axis='y', which='both', direction='in', left=True, right=True)
+savefig('phonon_with_group_velocity.png', dpi=300, bbox_inches='tight')
