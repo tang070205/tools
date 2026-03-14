@@ -24,10 +24,10 @@ sym_labels = [r'$\Gamma$' if x == 'G' else x for x in sym_labels]
 
 omega2 = np.loadtxt("omega2.out")
 npath = omega2[:, 0]
-nu = omega2[:, 1:]
-for i in range(len(nu)):
-    for j in range(len(nu[0])):
-        nu[i, j] = np.sqrt(abs(nu[i, j])) / (2 * np.pi) * np.sign(nu[i, j])
+nep = omega2[:, 1:]
+for i in range(len(nep)):
+    for j in range(len(nep[0])):
+        nep[i, j] = np.sqrt(abs(nep[i, j])) / (2 * np.pi) * np.sign(nep[i, j])
 
 figure(figsize=(8,8))
 
@@ -40,7 +40,7 @@ if os.path.exists(dft_file):
     dft_path = dft[idx0[0]:idx0[1],0] / dft[-1,0] * npath [-1]
     plot(dft_path, DFT, color='C0', lw=2)
 
-plot(npath, nu, color='C1',lw=2)
+plot(npath, nep, color='C1',lw=2)
 xlim([0, npath[-1]]);xticks(fontsize=18)
 vlines(sym_points[1:-1], ymin=0, ymax=y_max, color='black', linestyle='--')
 gca().set_xticks(sym_points)
@@ -58,3 +58,16 @@ else:
     plot([], [], color='C1', lw=2, label='NEP')
     legend()
     savefig('phonon_NEP.png', dpi=300, bbox_inches='tight')
+
+group_velocity = np.gradient(nep, npath, axis=0)
+figure(figsize=(9, 8))
+plot(nep.flatten(), np.abs(group_velocity.flatten()) / 5 * np.pi, '.')
+xlim([0, 10])
+gca().set_xticks(linspace(0, 10, 6))
+ylim([0, 10])
+gca().set_yticks(linspace(0, 10, 6))
+xlabel(r'$\nu$ (THz)', fontsize=15)
+ylabel(r'Group Velocity (km/s)', fontsize=15)
+tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+tick_params(axis='y', which='both', direction='in', left=True, right=True)
+savefig('group_velocity_NEP.png', dpi=300, bbox_inches='tight')
