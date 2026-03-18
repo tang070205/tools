@@ -71,7 +71,7 @@ def get_indices(data, marker='-1e+06'):
 
     train_no_indices, test_no_indices, train_indices, test_indices = None, None, None, None
     train_length, test_length = 0, 0
-    if lambda_v != 0 and element_force == 0:
+    if lambda_v != 0:
         if os.path.exists(f'{data}_train.out'):
             train_no_indices, train_length = get_no_indices(f'{data}_train.out')
             train_indices = [i for i in range(train_length) if i not in train_no_indices]
