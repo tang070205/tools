@@ -57,7 +57,7 @@ def get_indices(data, marker='-1e+06'):
             total = i + 1 if 'i' in locals() else 0
         return idx, total
 
-    train_no_indices, test_no_indices = None, None
+    train_no_indices, test_no_indices, train_indices, test_indices = None, None, None, None
     train_length, test_length = 0, 0
     if lambda_v != 0 and element_force == 0:
         if os.path.exists(f'{data}_train.out'):
@@ -178,38 +178,36 @@ def plot_loss():
             loss = np.loadtxt('loss.out')[:, 1:10]
             label = [r'$L_{\text{total}}$', r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test']
 
-    if loss.shape[1] == 7:
-        None
-    elif loss.shape[1] == 5:
-        loss, label = check_L1(loss, label)
-        if os.path.exists('test.xyz'):
-            loglog(loss)
-            legend(label, frameon=False, fontsize=13, loc='upper right')
-        else:
-            loglog(loss[:, :-1])
-            legend(label[:-1], frameon=False, fontsize=13, loc='upper right')
-    else:
-        if charge_mode != 0:
-            vv = 1
-            if loss[-1,7] == 0.0 or lambda_z == 0.0:
-                loss, label = np.delete(loss, [7,12], axis=1), np.delete(label, [7,12])
-                vv = 0
-        if lambda_v == 0:
-            loss_v = [5,8] if charge_mode == 0 else [5,9 + vv]
-            loss, label = np.delete(loss, loss_v, axis=1), np.delete(label, loss_v)
+        if loss.shape[1] == 5:
             loss, label = check_L1(loss, label)
             if os.path.exists('test.xyz'):
                 loglog(loss)
-                legend(label, ncol=2, frameon=False, fontsize=10, loc='lower left')
+                legend(label, frameon=False, fontsize=13, loc='upper right')
             else:
-                legend(label[:-2] if charge_mode == 0 else label[:-3] if vv == 0 else label[:-4], ncol=1, frameon=False, fontsize=10, loc='lower left')
+                loglog(loss[:, :-1])
+                legend(label[:-1], frameon=False, fontsize=13, loc='upper right')
         else:
-            loss, label = check_L1(loss, label)
-            if os.path.exists('test.xyz'):
-                loglog(loss)
-                legend(label, ncol=3, frameon=False, fontsize=9, loc='lower left')
+            if charge_mode != 0:
+                vv = 1
+                if loss[-1,7] == 0.0 or lambda_z == 0.0:
+                    loss, label = np.delete(loss, [7,12], axis=1), np.delete(label, [7,12])
+                    vv = 0
+            if lambda_v == 0:
+                loss_v = [5,8] if charge_mode == 0 else [5,9 + vv]
+                loss, label = np.delete(loss, loss_v, axis=1), np.delete(label, loss_v)
+                loss, label = check_L1(loss, label)
+                if os.path.exists('test.xyz'):
+                    loglog(loss)
+                    legend(label, ncol=2, frameon=False, fontsize=10, loc='lower left')
+                else:
+                    legend(label[:-2] if charge_mode == 0 else label[:-3] if vv == 0 else label[:-4], ncol=1, frameon=False, fontsize=10, loc='lower left')
             else:
-                legend(label[:-3] if charge_mode == 0 else label[:-4] if vv == 0 else label[:-5], ncol=1, frameon=False, fontsize=10, loc='lower left')
+                loss, label = check_L1(loss, label)
+                if os.path.exists('test.xyz'):
+                    loglog(loss)
+                    legend(label, ncol=3, frameon=False, fontsize=9, loc='lower left')
+                else:
+                    legend(label[:-3] if charge_mode == 0 else label[:-4] if vv == 0 else label[:-5], ncol=1, frameon=False, fontsize=10, loc='lower left')
 
     set_tick_params()
     if os.path.exists('gnep.in'):
