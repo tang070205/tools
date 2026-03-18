@@ -165,7 +165,7 @@ def plot_loss():
             loglog(loss)
             legend(label, ncol= 2, frameon=False, fontsize=13, loc='lower left')
         else:
-            loglog(loss[:4])
+            loglog(loss[:, :4])
             legend(label[:4], ncol= 1, frameon=False, fontsize=13, loc='lower left')
     else:
         if charge_mode != 0:
@@ -184,10 +184,11 @@ def plot_loss():
         loss, label = check_L1(loss, label)
         if os.path.exists('test.xyz'):
             loglog(loss)
-            legend(label, ncol= 1, frameon=False, fontsize=13, loc='upper right')
+            legend(label, frameon=False, fontsize=13, loc='upper right')
         else:
+            loglog(loss[:, :-1])
             legend(label[:-1], frameon=False, fontsize=13, loc='upper right')
-    elif loss.shape[1] == 13:
+    else:
         if charge_mode != 0:
             vv = 1
             if loss[-1,7] == 0.0 or lambda_z == 0.0:
