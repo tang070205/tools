@@ -4,8 +4,6 @@ from pylab import *
 
 three_six_component = 0   # 0不画三六分量，1画三六分量
 use_range = 0   # 0使用默认读取文件最大值个最小值作范围，1使用对角线范围，2使用坐标轴范围
-element_force = 0   # 0不画元素力，1画元素力
-component = '0'   # '0'不画分量, 'force'画力分量, 'dipole'画偶极矩分量, 'virial'画virial分量等等(不包含BEC)
 charge_sign, charge_plot_method = 1, 'hist'  # -1是图里电荷感觉反了，1是没反, hist是histplot，kde是kdeplot
 plot_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
        'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}
@@ -200,6 +198,7 @@ def plot_loss():
                     loglog(loss)
                     legend(label, ncol=2, frameon=False, fontsize=10, loc='lower left')
                 else:
+                    loglog(loss[:-2] if charge_mode == 0 else loss[:-3] if vv == 0 else loss[:-4])
                     legend(label[:-2] if charge_mode == 0 else label[:-3] if vv == 0 else label[:-4], ncol=1, frameon=False, fontsize=10, loc='lower left')
             else:
                 loss, label = check_L1(loss, label)
@@ -207,6 +206,7 @@ def plot_loss():
                     loglog(loss)
                     legend(label, ncol=3, frameon=False, fontsize=9, loc='lower left')
                 else:
+                    loglog(loss[:-3] if charge_mode == 0 else loss[:-4] if vv == 0 else loss[:-5])
                     legend(label[:-3] if charge_mode == 0 else label[:-4] if vv == 0 else label[:-5], ncol=1, frameon=False, fontsize=10, loc='lower left')
 
     set_tick_params()
@@ -376,108 +376,6 @@ def plot_descriptor():
     savefig(f'nep-descriptor.png', dpi=200, bbox_inches='tight')
     pass
 
-def plot_element_force():
-    print(f'Plotting enery element forces...')
-    if model_type == 'dipole' or model_type == 'polarizability':
-        print('Element force plotting is not available for dipole or polarizability models.')
-        return
-
-    if not os.path.exists('force_test.out'):
-        force_test = np.loadtxt('force_test.out')
-        force_elements_test = get_element_property('test', force_test)
-    force_train = np.loadtxt('force_train.out')
-    force_elements_train = get_element_property('train', force_train)
-
-    for element, force_element_train in force_elements_train.items():
-        figure(figsize=(5.5, 5))
-        if os.path.exists('force_test.out'):
-            train_element_force = get_counts2two(np.array(force_element_train))
-            test_element_force = get_counts2two(np.array(force_elements_test[element]))
-            plot(train_element_force[:, 1], train_element_force[:, 0], '.', label=f'{element}-train', alpha=0.8, color='deepskyblue')
-            plot(test_element_force[:, 1], test_element_force[:, 0], '.', label=f'{element}-test', alpha=0.8, color='orange')
-        else:
-            train_element_force = np.array(force_element_train)
-            plot(train_element_force[:, 3], train_element_force[:, 0], '.', label=f'{element}-x', alpha=0.8, color='red')
-            plot(train_element_force[:, 4], train_element_force[:, 1], '.', label=f'{element}-y', alpha=0.8, color='green')
-            plot(train_element_force[:, 5], train_element_force[:, 2], '.', label=f'{element}-z', alpha=0.8, color='blue')
-        
-        train_min, train_max = get_range('force', train_element_force)
-        test_min, test_max = get_range('force', test_element_force) if os.path.exists('force_test.out') else (None, None)
-        if use_range == 0:
-            range_min = train_min if test_min is None or train_min < test_min else test_min
-            range_max = train_max if test_max is None or train_max > test_max else test_max
-        elif use_range == 1:
-            range_min, range_max = plot_range.get('force', (None, None))
-        elif use_range == 2:
-            range_min, range_max = plot_range.get('force', (None, None))
-        xlim(range_min, range_max); xticks(fontsize=13)
-        ylim(range_min, range_max); yticks(fontsize=13)
-        plot(linspace(range_min, range_max), linspace(range_min, range_max), 'k--', zorder=0)
-        set_tick_params()
-        xlabel('DFT force (eV/Å)', fontsize=15)
-        ylabel('NEP force (eV/Å)', fontsize=15)
-        legend(frameon=False, fontsize=12, loc='upper left')
-        tight_layout()
-        title(f'The force of element {element}')
-        savefig(f'{element}-force.png', dpi=300, bbox_inches='tight')
-    pass
-
-def plot_data_component(comp):
-    print(f'Plotting {comp} components...')
-    if lambda_v == 0 and (comp == 'virial' or comp == 'stress'):
-        print('The virial/stress component plotting is not available when virial/stress is not used in training or all structures are not has virial/stress.')
-        return
-    color_train, color_test = generate_colors(comp)
-    label_unit = units.get(comp, 'unknown unit')
-    comps3, comps6 = ['x', 'y', 'z'], ['xx', 'yy', 'zz', 'xy', 'yz', 'xz']
-
-    def plot_component_diagonals(data_t, hang, lie, start, line_i, pic, comps):
-        subplot(hang, lie, start)
-        plot(data_t[:, line_i + pic], data_t[:, line_i], '.', color=color_train[line_i % len(color_train)])
-        data_lie = np.column_stack((data_t[:, line_i + pic], data_t[:, line_i]))
-        range_min, range_max = get_range(comp, data_lie)
-        plot(linspace(range_min, range_max), linspace(range_min, range_max), 'k--', zorder=0)
-        xlim(range_min, range_max); xticks(fontsize=13)
-        ylim(range_min, range_max); yticks(fontsize=13)
-        xlabel(f"DFT {comp} ({label_unit})", fontsize=15)
-        ylabel(f"NEP {comp} ({label_unit})", fontsize=15)
-        legend([f'{comps[line_i]}'], frameon=False, fontsize=13, loc='upper left')
-        set_tick_params()
-        tight_layout()
-        pass
-    
-    if comp in ('force', 'dipole'):
-        picture_count=  3
-        figure(figsize=(16.5,5))
-    else:
-        picture_count=  6
-        figure(figsize=(16.5,10))
-    if (comp == 'virial' or comp == 'stress') and (train_novirial_indices is not None and len(train_novirial_indices) < train_virial_length):
-        globals()[f'{comp}_train'] = np.loadtxt(f'{comp}_train.out')[train_virial_indices]
-        globals()[f'{comp}_test'] = np.loadtxt(f'{comp}_train.out')[test_virial_indices] if os.path.exists(f'{comp}_test.out') else None
-    else:
-        globals()[f'{comp}_train'] = np.loadtxt(f'{comp}_train.out')
-        globals()[f'{comp}_test'] = np.loadtxt(f'{comp}_test.out') if os.path.exists(f'{comp}_test.out') else None
-        
-    if os.path.exists(f'{comp}_test.out'):
-        data_test = np.loadtxt(f'{comp}_test.out')
-    data_train = np.loadtxt(f'{comp}_train.out')
-
-    for i in range(picture_count):
-        if comp in ('force', 'dipole'):
-            if os.path.exists(f'{comp}_test.out'):
-                plot_component_diagonals(data_test, 1, 3, i+1, i, picture_count, comps3)
-                savefig(f'{comp}-test-components.png', dpi=200)
-            plot_component_diagonals(data_train, 1, 3, i+1, i, picture_count, comps3)
-            savefig(f'{comp}-train-components.png', dpi=200)
-        else:
-            if os.path.exists(f'{comp}_test.out'):
-                plot_component_diagonals(data_test, 2, 3, i+1, i, picture_count, comps6)
-                savefig(f'{comp}-test-components.png', dpi=200)
-            plot_component_diagonals(data_train, 2, 3, i+1, i, picture_count, comps6)
-            savefig(f'{comp}-train-components.png', dpi=200)
-    pass
-
 def plot_base_picture():
     def plot_base_diagonals(diag_types, hang, lie, start):
         for i, diag_type in enumerate(diag_types):
@@ -512,6 +410,7 @@ if os.path.exists('loss.out'):
         print('TNEP Train')
     else:
         print('NEP Train')
+
     if os.path.exists('gnep.in'):
         figure(figsize=(11,5))
         subplot(1,2,1)
@@ -523,15 +422,11 @@ if os.path.exists('loss.out'):
         figure(figsize=(5.5,5))
         plot_loss()
         savefig('nep-loss.png', dpi=200)
-    if element_force == 1:
-        plot_element_force()
-    elif component != '0':
-        plot_data_component(component)
-    else:
-        plot_base_picture()
-        plot_charge()
-        if os.path.exists('bec_train.out') and train_nobec_indices is None and lambda_z != 0:
-            plot_diagonal('bec')
+
+    plot_base_picture()
+    plot_charge()
+    if os.path.exists('bec_train.out') and train_nobec_indices is None and lambda_z != 0:
+        plot_diagonal('bec')
 else:
     if charge_mode != 0:
         print('qNEP Prediction')
@@ -539,14 +434,9 @@ else:
         print('TNEP Prediction')
     else:
         print('NEP Prediction')
-    if element_force == 1:
-        plot_element_force()
-    elif component != '0':
-        plot_data_component(component)
-    else:
-        plot_base_picture()
-        plot_charge()
-        if os.path.exists('bec_train.out') and train_nobec_indices is None and lambda_z != 0:
-            plot_diagonal('bec')
-        plot_descriptor()
 
+    plot_base_picture()
+    plot_charge()
+    if os.path.exists('bec_train.out') and train_nobec_indices is None and lambda_z != 0:
+        plot_diagonal('bec')
+    plot_descriptor()
