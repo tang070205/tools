@@ -2,8 +2,8 @@ from ase.io import read, write
 import os, sys, shutil, subprocess
 
 def main():
-    if len(sys.argv) != 4 and len(sys.argv) != 5:
-        print("Usage: python3 xyz2POSCAR.py <xyz_file> vasp/abacus (<number_of_perturbations>)")
+    if len(sys.argv) != 3 and len(sys.argv) != 4:
+        print("Usage: python3 mdxyz2POSCAR.py <xyz_file> vasp/abacus (<number_of_perturbations>)")
         sys.exit(1)
 if __name__ == "__main__":
     main()
@@ -11,15 +11,16 @@ if __name__ == "__main__":
 original_cwd = os.getcwd()
 infile = os.path.splitext(os.path.basename(sys.argv[1]))[0]
 inxyz = read(sys.argv[1], index=":")
-if sys.argv[3] is None:
+if len(sys.argv) == 3:
     os.system(f"cp {sys.argv[1]} {infile}_activate_learning.xyz")
+    number_structures = len(inxyz)
 else:
     number_structures = int(sys.argv[3])
     interval = len(inxyz) // number_structures
     first_indices = len(inxyz) - interval * (number_structures - 1) - 1
     for i in range(number_structures):
         subset = inxyz[first_indices + i * interval]
-        write(f'activate_learning.xyz', subset, append=True)
+        write(f'{infile}_activate_learning.xyz', subset, append=True)
 
 if not os.path.exists(f'{infile}_activate_learning_folders'):
     os.makedirs(f'{infile}_activate_learning_folders')
@@ -28,7 +29,7 @@ for i in range(number_structures):
     folder_path = os.path.join(f'{infile}_activate_learning_folders', folder_name)
     os.makedirs(folder_path)
 
-alxyz = read("activate_learning.xyz", index=":")
+alxyz = read(f'{infile}_activate_learning.xyz', index=":")
 for i in range(number_structures):
     al_filepath = os.path.join(f'{infile}_activate_learning_folders', f'activate_learning_{i+1}', 'activate_learning.xyz')
     write(al_filepath, alxyz[i])
