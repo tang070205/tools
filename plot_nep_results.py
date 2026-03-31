@@ -150,8 +150,9 @@ def get_element_property(file, atoms_property):
     return non_empty_elements_lists
 
 def check_L1(loss, label):
-    loss = np.delete(loss, 1, axis=1) if loss[-1,1] == 0.0 else loss
-    label = np.delete(label, 1) if loss[-1,1] == 0.0 else label
+    no_L1 = True if loss[-1, 1] == 0.0 else False
+    loss = np.delete(loss, 1, axis=1) if no_L1 else loss
+    label = np.delete(label, 1) if no_L1 else label
     return loss, label
 
 def plot_loss():
