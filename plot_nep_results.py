@@ -427,7 +427,9 @@ if os.path.exists('loss.out'):
     plot_base_picture()
     plot_charge()
     if os.path.exists('bec_train.out') and train_nobec_indices is None and lambda_z != 0:
+        figure(figsize=(5.5,5.5))
         plot_diagonal('bec')
+        savefig('nep-bec-diagonal.png', dpi=200)
 else:
     if charge_mode != 0:
         print('qNEP Prediction')
@@ -439,5 +441,7 @@ else:
     plot_base_picture()
     plot_charge()
     if os.path.exists('bec_train.out') and train_nobec_indices is None and lambda_z != 0:
+        figure(figsize=(5.5,5.5))
         plot_diagonal('bec')
+        savefig('nep-bec-diagonal.png', dpi=200)
     plot_descriptor()
