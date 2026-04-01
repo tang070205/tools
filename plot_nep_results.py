@@ -125,7 +125,7 @@ def get_range(data, data_file):
         return np.floor(data_file.min()), np.ceil(data_file.max())
         
 def process_data(data, data_type):
-    if three_six_component == 0:
+    if three_six_component == 0 or data == 'bec':
         return globals().get(f"{data}_{data_type}") if data == 'energy' else get_counts2two(globals().get(f"{data}_{data_type}"))
     else:
         return globals().get(f"{data}_{data_type}")
