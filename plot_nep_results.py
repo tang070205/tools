@@ -7,14 +7,16 @@ use_range = 0   # 0使用默认读取文件最大值个最小值作范围，1使
 charge_sign, charge_plot_method = 1, 'hist'  # -1是图里电荷感觉反了，1是没反, hist是histplot，kde是kdeplot
 plot_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
        'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}
-train_colors = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan'] #力的话各取前三个
-test_colors = ['magenta', 'lime', 'teal', 'navy', 'olive', 'maroon']
+train_colors = ['red', 'blue', 'green', 'purple', 'orange', 'brown', 'pink', 'gray', 'gold'] 
+test_colors = ['cyan', 'magenta', 'lime', 'navy', 'teal', 'coral', 'olive', 'maroon', 'indigo']
 def generate_colors(data):
-    if three_six_component == 0 or data == 'energy' or data == 'bec':
+    if three_six_component == 0 or data == 'energy':
         return 'deepskyblue', 'orange'   #不画三六分量，前是训练集颜色，后是测试集颜色
     else:
         if data in ['force', 'dipole']:
             return train_colors[:3], test_colors[:3]
+        elif data == 'bec':
+            return train_colors[:9], test_colors[:9]
         else:
             return train_colors, test_colors
 
@@ -65,7 +67,7 @@ def get_indices(data, marker):
         t_idx = np.setdiff1d(np.arange(t_len), t_nidx, assume_unique=True)
         if len(t_nidx) > 0:
             np.savetxt(f'{t}_no_{data}_indices.txt', t_nidx, fmt='%d')
-            print(f"Train set has {len(t_nidx)} lines without {data}, saved to {f}_no_{data}_indices.txt")
+            print(f"{t.capitalize()} set has {len(t_nidx)} lines without {data}, saved to {t}_no_{data}_indices.txt")
             print("This index is only applicable to fullbatch training and prediction")
         if t == 'train':
             train_nidx, train_idx, train_len = t_nidx, t_idx, t_len
@@ -96,13 +98,13 @@ def calc_r2_rmse(out_file):
     rmse_data = rmse_origin * 1000 if rmse_origin < 1 else rmse_origin
     return rmse_origin, rmse_data, r2_data
 
-def plot_value(values, color, data):
+def plot_value(values, colors, data):
     columns = int(values.shape[1]//2)
     if three_six_component == 0 or data == 'energy':
-        plot(values[:, 1], values[:, 0], '.', color=color)
+        plot(values[:, 1], values[:, 0], '.', color=colors)
     else:
         for i in range(columns):
-            plot(values[:, i+columns], values[:, i], '.', color=color[i % len(color)])
+            plot(values[:, i+columns], values[:, i], '.', color=colors[i])
     pass
 
 units = {'force': 'eV/Å', 'stress': 'GPa', 'energy': 'eV/atom','virial': 'eV/atom', 'dipole': 'a.u./atom', 'polarizability': 'a.u./atom', 'bec' : 'e'}
@@ -111,12 +113,20 @@ def get_unit(data, rmse_origin):
     return munits.get(data, 'unknown unit') if rmse_origin < 1 else units.get(data, 'unknown unit')
 
 def generate_legs(data, types, prefixes):
-    comps = {3: ['x', 'y', 'z'], 6: ['xx', 'yy', 'zz', 'xy', 'yz', 'xz']}
+    comps = {3: ['x', 'y', 'z'], 6: ['xx', 'yy', 'zz', 'xy', 'yz', 'xz'],
+             9: ['xx', 'xy', 'xz', 'yx', 'yy', 'yz', 'zx', 'zy', 'zz']}
+    def get_dim(typ):
+        if typ in ['force', 'dipole']:
+            return 3
+        elif typ == 'bec':
+            return 9
+        else:
+            return 6
     if os.path.exists(f"{data}_test.out"):
-        return {typ: [f"{prefix}_{comp}" for comp in comps[3 if typ in ['force', 'dipole'] else 6]] for typ in types for prefix in prefixes}
+        return {typ: [f"{prefix}_{comp}" for comp in comps[get_dim(typ)]] for typ in types for prefix in prefixes}
     else:
-        return {typ: [f"{comp}" for comp in comps[3 if typ in ['force', 'dipole'] else 6]] for typ in types}
-properties, prefixes = ['force', 'stress', 'virial', 'dipole', 'polarizability'], ['train', 'test']
+        return {typ: [f"{comp}" for comp in comps[get_dim(typ)]] for typ in types}
+properties, prefixes = ['force', 'stress', 'virial', 'dipole', 'polarizability', 'bec'], ['train', 'test']
 
 def get_range(data, data_file):
     if data == 'energy':
@@ -125,7 +135,7 @@ def get_range(data, data_file):
         return np.floor(data_file.min()), np.ceil(data_file.max())
         
 def process_data(data, data_type):
-    if three_six_component == 0 or data == 'bec':
+    if three_six_component == 0:
         return globals().get(f"{data}_{data_type}") if data == 'energy' else get_counts2two(globals().get(f"{data}_{data_type}"))
     else:
         return globals().get(f"{data}_{data_type}")
@@ -265,7 +275,7 @@ def plot_diagonal(data):
         plot_value(data_test, color_test, data)
         origin_rmse_test, rmse_data_test, r2_data_test = calc_r2_rmse(data_test)
         unitest = get_unit(data, origin_rmse_test)
-        if three_six_component == 0 or data == 'energy' or data == 'bec':
+        if three_six_component == 0 or data == 'energy':
             legend([f'train RMSE= {rmse_data_train:.3f} {unitest}', f'test RMSE= {rmse_data_test:.3f} {unitest}'], loc='upper left', frameon=False, fontsize=13)
             annotate(f'train R²= {r2_data_train:.5f}', xy=(0.55, 0.12), fontsize=14, xycoords='axes fraction', ha='left', va='top')
             annotate(f'test R²= {r2_data_test:.5f}', xy=(0.55, 0.07), fontsize=14, xycoords='axes fraction', ha='left', va='top')
@@ -278,7 +288,7 @@ def plot_diagonal(data):
     else:
         test_min, test_max = None, None
         unitrain = get_unit(data, origin_rmse_train)
-        if three_six_component == 0 or data == 'energy' or data == 'bec':
+        if three_six_component == 0 or data == 'energy':
             legend([f'train RMSE= {rmse_data_train:.3f} {unitrain}'], loc='upper left', frameon=False, fontsize=14)
             annotate(f'train R²= {r2_data_train:.5f}', xy=(0.55, 0.07), fontsize=14, xycoords='axes fraction', ha='left', va='top')
         else:
@@ -294,7 +304,9 @@ def plot_diagonal(data):
     elif use_range == 2:
         range_min, range_max = plot_range.get(data, (None, None))
     xlim(range_min, range_max); xticks(fontsize=13)
+    gca().set_xticks(linspace(range_min, range_max, 5))
     ylim(range_min, range_max); yticks(fontsize=13)
+    gca().set_yticks(linspace(range_min, range_max, 5))
     plot(linspace(range_min, range_max), linspace(range_min, range_max), 'k--', zorder=0)
     set_tick_params()
     xlabel(f"DFT {data} ({label_unit})", fontsize=15)
@@ -339,7 +351,7 @@ def plot_charge():
     #ylim(0, 1000)
     set_tick_params()
     tight_layout()
-    savefig(f'nep-charge.png', dpi=200, bbox_inches='tight')
+    savefig(f'nep-charge.png', dpi=300, bbox_inches='tight')
     pass
 
 def plot_descriptor():
@@ -373,7 +385,7 @@ def plot_descriptor():
     ylabel('PC2')
     set_tick_params()
     tight_layout()
-    savefig(f'nep-descriptor.png', dpi=200, bbox_inches='tight')
+    savefig(f'nep-descriptor.png', dpi=300, bbox_inches='tight')
     pass
 
 def plot_base_picture():
@@ -386,21 +398,21 @@ def plot_base_picture():
     if model_type is not None:
         figure(figsize=(5.5,5))
         plot_diagonal(f'{model_type}')
-        savefig(f'nep-{model_type}-diagonal.png', dpi=200)
+        savefig(f'nep-{model_type}-diagonal.png', dpi=300)
     else:
         base_diag_types= ['energy', 'force', 'virial', 'stress']
         if lambda_v == 0:
             figure(figsize=(11,5))
             plot_base_diagonals(base_diag_types[:2], 1, 2, 1)
-            savefig('nep-ef-diagonals.png', dpi=200)
+            savefig('nep-ef-diagonals.png', dpi=300)
         elif not os.path.exists('stress_train.out'):
             figure(figsize=(16.5,5))
             plot_base_diagonals(base_diag_types[:3], 1, 3, 1)
-            savefig('nep-efv-diagonals.png', dpi=200)
+            savefig('nep-efv-diagonals.png', dpi=300)
         else:
             figure(figsize=(11,10))
             plot_base_diagonals(base_diag_types, 2, 2, 1)
-            savefig('nep-efvs-diagonals.png', dpi=200)
+            savefig('nep-efvs-diagonals.png', dpi=300)
     pass
 
 if os.path.exists('loss.out'):
@@ -417,18 +429,19 @@ if os.path.exists('loss.out'):
         plot_loss()
         subplot(1,2,2)
         plot_learning_rate()
-        savefig('gnep-loss-learning_rate.png', dpi=200)
+        savefig('gnep-loss-learning_rate.png', dpi=300)
     else:
         figure(figsize=(5.5,5))
         plot_loss()
-        savefig('nep-loss.png', dpi=200)
+        savefig('nep-loss.png', dpi=300)
 
     plot_base_picture()
-    plot_charge()
+    #plot_charge()
     if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
-        figure(figsize=(5.5,5.5))
+        b_size = 5.5 if three_six_component == 0 else 6.5
+        figure(figsize=(b_size, b_size))
         plot_diagonal('bec')
-        savefig('nep-bec-diagonal.png', dpi=200)
+        savefig('nep-bec-diagonal.png', dpi=300)
 else:
     if charge_mode != 0:
         print('qNEP Prediction')
@@ -440,7 +453,8 @@ else:
     plot_base_picture()
     plot_charge()
     if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
-        figure(figsize=(5.5,5.5))
+        b_size = 5.5 if three_six_component == 0 else 6.5
+        figure(figsize=(b_size, b_size))
         plot_diagonal('bec')
-        savefig('nep-bec-diagonal.png', dpi=200)
+        savefig('nep-bec-diagonal.png', dpi=300)
     plot_descriptor()
