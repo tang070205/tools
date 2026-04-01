@@ -436,7 +436,7 @@ if os.path.exists('loss.out'):
         savefig('nep-loss.png', dpi=300)
 
     plot_base_picture()
-    #plot_charge()
+    plot_charge()
     if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
         b_size = 5.5 if three_six_component == 0 else 6.5
         figure(figsize=(b_size, b_size))
