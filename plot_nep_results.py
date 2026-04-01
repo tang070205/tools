@@ -44,7 +44,7 @@ if os.path.exists(in_file):
 else:
     print('No in file found. Using default values for lambda_v and batch and others.')
 
-def get_indices(data, marker='-1e+06'):
+def get_indices(data, marker):
     def get_no_indices(path):
         idx = []
         with open(path) as f:
@@ -55,29 +55,28 @@ def get_indices(data, marker='-1e+06'):
             total = i + 1 if 'i' in locals() else 0
         return idx, total
 
-    train_no_indices, test_no_indices, train_indices, test_indices = None, None, None, None
-    train_length, test_length = 0, 0
-    if lambda_v != 0:
-        if os.path.exists(f'{data}_train.out'):
-            train_no_indices, train_length = get_no_indices(f'{data}_train.out')
-            train_indices = [i for i in range(train_length) if i not in train_no_indices]
-            if len(train_no_indices) > 0:
-                np.savetxt(f'train_no_{data}_indices.txt', train_no_indices, fmt='%d')
-                print(f"Train set has {len(train_no_indices)} structures without {data}, saved to train_no_{data}_indices.txt")
-                print("This index is only applicable to fullbatch training and prediction")
-        if os.path.exists(f'{data}_test.out'):
-            test_no_indices, test_length = get_no_indices(f'{data}_test.out')
-            test_indices = [i for i in range(test_length) if i not in test_no_indices]
-            if len(test_no_indices) > 0:
-                np.savetxt(f'test_no_{data}_indices.txt', test_no_indices, fmt='%d')
-                print(f"Test set has {len(test_no_indices)} structures without {data}, saved to test_no_{data}_indices.txt")
-                print("This index is only applicable to fullbatch training and prediction")
-    return train_no_indices, train_indices, train_length, test_no_indices, test_indices, test_length
-train_novirial_indices, train_virial_indices, train_virial_length, test_novirial_indices, test_virial_indices, test_virial_length = get_indices('virial')
-if train_novirial_indices is not None and len(train_novirial_indices) == train_virial_length:
+    train_nidx, test_nidx, train_idx, test_idx = [], [], [], []
+    train_len, test_len = 0, 0
+    if data == 'virial' and lambda_v == 0:
+        return [], [], 0, [], [], 0
+    tt = ['train', 'test'] if os.path.exists(f'{data}_test.out') else ['train']
+    for t in tt:
+        t_nidx, t_len = get_no_indices(f'{data}_{t}.out')
+        t_idx = np.setdiff1d(np.arange(t_len), t_nidx, assume_unique=True)
+        if len(t_nidx) > 0:
+            np.savetxt(f'{t}_no_{data}_indices.txt', t_nidx, fmt='%d')
+            print(f"Train set has {len(t_nidx)} lines without {data}, saved to {f}_no_{data}_indices.txt")
+            print("This index is only applicable to fullbatch training and prediction")
+        if t == 'train':
+            train_nidx, train_idx, train_len = t_nidx, t_idx, t_len
+        else:
+            test_nidx, test_idx, test_len = t_nidx, t_idx, t_len
+    return train_nidx, train_idx, train_len, test_idx, test_idx, test_len
+train_nv_idx, train_v_idx, train_v_len, test_nv_idx, test_v_idx, test_v_len = get_indices('virial', '-1e+06')
+if len(train_nv_idx) == train_v_len:
     lambda_v = 0
 if charge_mode !=0 and os.path.exists('bec_train.out'):
-    train_nobec_indices, train_bec_indices, train_bec_length, test_nobec_indices, test_bec_indices, test_bec_length = get_indices('bec', marker=0.0)
+    train_nb_idx, train_b_idx, train_b_len, test_nb_idx, test_b_idx, test_b_len = get_indices('bec', '0')
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -243,11 +242,11 @@ def plot_diagonal(data):
         print(f'{data}_train.out does not exist')
         return
     if data == 'virial' or data == 'stress':
-        if train_novirial_indices is not None and len(train_novirial_indices) < train_virial_length:
-            globals()[f'{data}_train'] = globals()[f'{data}_train'][train_virial_indices]
+        if train_nv_idx is not None and len(train_nv_idx) < train_v_len:
+            globals()[f'{data}_train'] = globals()[f'{data}_train'][train_v_idx]
     elif data == 'bec':
-        if train_nobec_indices is not None and len(train_nobec_indices) < train_bec_length:
-            globals()[f'{data}_train'] = globals()[f'{data}_train'][train_bec_indices]
+        if train_nb_idx is not None and len(train_nb_idx) < train_b_len:
+            globals()[f'{data}_train'] = globals()[f'{data}_train'][train_b_idx]
     data_train = process_data(data, 'train')
     train_min, train_max = get_range(data, data_train)
     plot_value(data_train, color_train, data)
@@ -256,11 +255,11 @@ def plot_diagonal(data):
     if os.path.exists(f"{data}_test.out"):
         globals()[f'{data}_test'] = np.loadtxt(f'{data}_test.out')
         if data == 'virial' or data == 'stress':
-            if test_novirial_indices is not None and len(test_novirial_indices) < test_virial_length:
-                globals()[f'{data}_test'] = globals()[f'{data}_test'][test_virial_indices]
+            if len(test_nv_idx) < test_v_len:
+                globals()[f'{data}_test'] = globals()[f'{data}_test'][test_v_idx]
         elif data == 'bec':
-            if test_nobec_indices is not None and len(test_nobec_indices) < test_bec_length:
-                globals()[f'{data}_test'] = globals()[f'{data}_test'][test_bec_indices]
+            if len(test_nb_idx) < test_b_len:
+                globals()[f'{data}_test'] = globals()[f'{data}_test'][test_b_idx]
         data_test = process_data(data, 'test')
         test_min, test_max = get_range(data, data_test) 
         plot_value(data_test, color_test, data)
@@ -426,7 +425,7 @@ if os.path.exists('loss.out'):
 
     plot_base_picture()
     plot_charge()
-    if os.path.exists('bec_train.out') and train_nobec_indices is None and lambda_z != 0:
+    if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
         figure(figsize=(5.5,5.5))
         plot_diagonal('bec')
         savefig('nep-bec-diagonal.png', dpi=200)
@@ -440,7 +439,7 @@ else:
 
     plot_base_picture()
     plot_charge()
-    if os.path.exists('bec_train.out') and train_nobec_indices is None and lambda_z != 0:
+    if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
         figure(figsize=(5.5,5.5))
         plot_diagonal('bec')
         savefig('nep-bec-diagonal.png', dpi=200)
