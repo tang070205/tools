@@ -74,9 +74,10 @@ def get_indices(data, marker):
         else:
             test_nidx, test_idx, test_len = t_nidx, t_idx, t_len
     return train_nidx, train_idx, train_len, test_idx, test_idx, test_len
-train_nv_idx, train_v_idx, train_v_len, test_nv_idx, test_v_idx, test_v_len = get_indices('virial', '-1e+06')
-if len(train_nv_idx) == train_v_len:
-    lambda_v = 0
+if model_type is None:
+    train_nv_idx, train_v_idx, train_v_len, test_nv_idx, test_v_idx, test_v_len = get_indices('virial', '-1e+06')
+    if len(train_nv_idx) == train_v_len:
+        lambda_v = 0
 if charge_mode !=0 and os.path.exists('bec_train.out'):
     train_nb_idx, train_b_idx, train_b_len, test_nb_idx, test_b_idx, test_b_len = get_indices('bec', '0')
 
