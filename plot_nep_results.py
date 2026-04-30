@@ -159,10 +159,11 @@ def get_element_property(file, atoms_property):
     non_empty_elements_lists = {element: atom_property for element, atom_property in element_lists.items() if atom_property}
     return non_empty_elements_lists
 
-def check_L1(loss, label):
-    no_L1 = True if loss[-1, 1] == 0.0 else False
-    loss = np.delete(loss, 1, axis=1) if no_L1 else loss
-    label = np.delete(label, 1) if no_L1 else label
+def check_loss(loss, label, idx):
+    for i in sorted(idx, reverse=True):
+        if loss[-1, i] == 0.0:
+            loss = np.delete(loss, i, axis=1)
+            label = np.delete(label, i)
     return loss, label
 
 def plot_loss():
@@ -178,17 +179,17 @@ def plot_loss():
             legend(label[:4], ncol= 1, frameon=False, fontsize=13, loc='lower left')
     else:
         if charge_mode != 0:
-            loss = np.loadtxt('loss.out')[:, 1:14]
-            label = [r'$L_{\text{total}}$', r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'Q-train', 'Z-train', 'E-test', 'F-test', 'V-test', 'Q-test', 'Z-test']
+            loss = np.loadtxt('loss.out')[:, 2:14]
+            label = [r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'Q-train', 'Z-train', 'E-test', 'F-test', 'V-test', 'Q-test', 'Z-test']
         elif model_type == 'dipole' or model_type == 'polarizability':
-            loss = np.loadtxt('loss.out')[:, 1:6]
-            label = [r'$L_{\text{total}}$', r'$L_1$', r'$L_2$', f'{model_type}-train', f'{model_type}-test']
+            loss = np.loadtxt('loss.out')[:, 2:6]
+            label = [r'$L_1$', r'$L_2$', f'{model_type}-train', f'{model_type}-test']
         else:
-            loss = np.loadtxt('loss.out')[:, 1:10]
-            label = [r'$L_{\text{total}}$', r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test']
+            loss = np.loadtxt('loss.out')[:, 2:10]
+            label = [r'$L_1$', r'$L_2$', 'E-train', 'F-train', 'V-train', 'E-test', 'F-test', 'V-test']
 
-        if loss.shape[1] == 5:
-            loss, label = check_L1(loss, label)
+        if loss.shape[1] == 4:
+            loss, label = check_loss(loss, label, [0, 1])
             if os.path.exists('test.xyz'):
                 loglog(loss)
                 legend(label, frameon=False, fontsize=13, loc='upper right')
@@ -198,13 +199,12 @@ def plot_loss():
         else:
             if charge_mode != 0:
                 vv = 1
-                if loss[-1,7] == 0.0 or lambda_z == 0.0:
-                    loss, label = np.delete(loss, [7,12], axis=1), np.delete(label, [7,12])
+                if loss[-1,6] == 0.0 or lambda_z == 0.0:
+                    loss, label = check_loss(loss, label, [6, 11])
                     vv = 0
             if lambda_v == 0:
-                loss_v = [5,8] if charge_mode == 0 else [5,9 + vv]
-                loss, label = np.delete(loss, loss_v, axis=1), np.delete(label, loss_v)
-                loss, label = check_L1(loss, label)
+                loss_v = [4,7] if charge_mode == 0 else [4,8 + vv]
+                loss, label = check_loss(loss, label, [0, 1]+ loss_v)
                 if os.path.exists('test.xyz'):
                     loglog(loss)
                     legend(label, ncol=2, frameon=False, fontsize=10, loc='lower left')
@@ -212,7 +212,7 @@ def plot_loss():
                     loglog(loss[:-2] if charge_mode == 0 else loss[:-3] if vv == 0 else loss[:-4])
                     legend(label[:-2] if charge_mode == 0 else label[:-3] if vv == 0 else label[:-4], ncol=1, frameon=False, fontsize=10, loc='lower left')
             else:
-                loss, label = check_L1(loss, label)
+                loss, label = check_loss(loss, label, [0, 1])
                 if os.path.exists('test.xyz'):
                     loglog(loss)
                     legend(label, ncol=3, frameon=False, fontsize=9, loc='lower left')
