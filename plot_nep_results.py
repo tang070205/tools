@@ -326,30 +326,33 @@ def plot_charge():
         return
     
     import seaborn as sns
-    figure(figsize=(6,5))
-    element_charges_train = get_element_property('train', charge_train * charge_sign) 
+    figure(figsize=(7,5))
+    element_charges_train = get_element_property('train', charge_train * charge_sign)
+    palette = sns.color_palette("tab10", 10)
     if os.path.exists("charge_test.out"):
         charge_test = np.loadtxt('charge_test.out')
         element_charges_test = get_element_property('test', charge_test * charge_sign)
-        for element_train, element_test in zip(element_charges_train.keys(), element_charges_test.keys()):
+        
+        for idx, (element_train, element_test) in enumerate(zip(element_charges_train.keys(), element_charges_test.keys())):
+            c = palette[idx % 10]
             if charge_plot_method == 'hist':
-                sns.histplot(element_charges_train[element_train], bins=500, alpha=0.6, label=f'{element_train}-train', kde=True, line_kws={'lw': 1})
-                sns.histplot(element_charges_test[element_test], bins=500, alpha=0.6, label=f'{element_test}-test', kde=True, line_kws={'lw': 1})
+                sns.histplot(element_charges_train[element_train], bins=500, alpha=0.9, color=c, label=f'{element_train}-train', kde=True, line_kws={'lw': 1, 'linestyle': '-'})
+                sns.histplot(element_charges_test[element_test], bins=500, alpha=0.5,color=c, label=f'{element_test}-test', kde=True, line_kws={'lw': 1, 'linestyle': '--'})
             else:
-                sns.kdeplot(element_charges_train[element_train], bins=500, alpha=0.6, label=f'{element_train}-train', lw=1)
-                sns.kdeplot(element_charges_test[element_test], bins=500, alpha=0.6, label=f'{element_test}-test', lw=1)
+                sns.kdeplot(element_charges_train[element_train], alpha=0.9, color=c, label=f'{element_train}-train', lw=1, linestyle='-')
+                sns.kdeplot(element_charges_test[element_test], alpha=0.5,color=c, label=f'{element_test}-test', lw=1, linestyle='--')
         legend(ncol=2, frameon=False, fontsize=12, loc='upper right')
     else:
-        for element in element_charges_train.keys():
+        for idx, element in enumerate(element_charges_train.keys()):
+            c = palette[idx % 10]
             if charge_plot_method == 'hist':
-                sns.histplot(element_charges_train[element], bins=500, alpha=0.6, label=element, kde=True, line_kws={'lw': 1})
+                sns.histplot(element_charges_train[element], bins=500, alpha=0.9, color=c, label=element, kde=True, line_kws={'lw': 1})
             else:
-                sns.kdeplot(element_charges_train[element], bins=500, alpha=0.6, label=element, lw=1)
+                sns.kdeplot(element_charges_train[element], alpha=0.9, color=c, label=element, lw=1)
         legend(frameon=False, fontsize=12, loc='upper right')
 
     xlabel('Charge', fontsize=15); xticks(fontsize=12)
     ylabel('Frequency', fontsize=15); yticks(fontsize=12)
-    #ylim(0, 1000)
     set_tick_params()
     tight_layout()
     savefig(f'nep-charge.png', dpi=300, bbox_inches='tight')
