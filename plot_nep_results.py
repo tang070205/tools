@@ -51,8 +51,8 @@ def get_indices(data, marker):
         idx = []
         with open(path) as f:
             for i, line in enumerate(f):
-                *_, last = line.split()
-                if last == marker:
+                parts = line.split()
+                if len(set(parts[6:])) == 1 or parts[-1] == marker:
                     idx.append(i)
             total = i + 1 if 'i' in locals() else 0
         return idx, total
@@ -231,7 +231,7 @@ def plot_loss():
 
 def plot_learning_rate():
     loss = np.loadtxt('loss.out')
-    plot(range(1, len(loss) + 1), loss[:, 8])
+    semilogy(range(1, len(loss) + 1), loss[:, 8])
     set_tick_params()
     #xlim(0, 1000)
     #ylim(0.9, 1)
