@@ -331,6 +331,7 @@ def plot_diagonal(data):
             annotate(f'train R²= {r2_data_train:.5f}', xy=(0.55, 0.07), fontsize=14, xycoords='axes fraction', ha='left', va='top')
 
     if use_range == 0:
+        interval = 0
         range_min = train_min if test_min is None or train_min < test_min else test_min
         range_max = train_max if test_max is None or train_max > test_max else test_max
     elif use_range == 1:
@@ -338,9 +339,9 @@ def plot_diagonal(data):
     elif use_range == 2:
         range_min, range_max, interval = plot_range.get(data, (None, None, None))
     xlim(range_min, range_max); xticks(fontsize=13)
-    gca().set_xticks(linspace(range_min, range_max, interval + 1 if interval is not None else 5))
+    gca().set_xticks(linspace(range_min, range_max, interval + 1 if interval != 0 else 5))
     ylim(range_min, range_max); yticks(fontsize=13)
-    gca().set_yticks(linspace(range_min, range_max, interval + 1 if interval is not None else 5))
+    gca().set_yticks(linspace(range_min, range_max, interval + 1 if interval != 0 else 5))
     plot(linspace(range_min, range_max), linspace(range_min, range_max), 'k--', zorder=0)
     set_tick_params()
     xlabel(f"DFT {data} ({label_unit})", fontsize=15)
