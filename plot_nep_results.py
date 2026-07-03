@@ -2,16 +2,18 @@ import os, glob, math
 import numpy as np
 from pylab import *
 
-three_six_component = 0   # 0不画三六分量，1画三六分量
-use_range = 0   # 0使用默认读取文件最大值个最小值作范围，1使用对角线范围，2使用坐标轴范围
-charge_sign, charge_plot_method = 1, 'hist'  # -1是图里电荷感觉反了，1是没反, hist是histplot，kde是kdeplot
-plot_range = {'energy': (-9, -8), 'force': (-20, 20), 'virial': (-10, 10), 
-       'stress': (-10, 10), 'dipole': (-10, 10), 'polarizability': (-10, 10)}
+three_six_component = 0   # 0: no component, 1: with component
+use_range = 0   # 0: default range; 1: diagonal range; 2: axis range
+charge_plot_method = 'hist'  # hist is histplot，kde is kdeplot
+epsilon_sqrt_new = 0 # Customize new value and save it to a new file
+# The three numbers in `plot_range` represent the minimum and maximum value, and axis interval
+plot_range = {'energy': (-9, -8, 4), 'force': (-20, 20, 4), 'virial': (-10, 10, 4), 
+       'stress': (-10, 10, 4), 'dipole': (-10, 10, 4), 'polarizability': (-10, 10, 4)}
 train_colors = ['red', 'blue', 'green', 'purple', 'orange', 'brown', 'pink', 'gray', 'gold'] 
 test_colors = ['cyan', 'magenta', 'lime', 'navy', 'teal', 'coral', 'olive', 'maroon', 'indigo']
 def generate_colors(data):
     if three_six_component == 0 or data == 'energy':
-        return 'deepskyblue', 'orange'   #不画三六分量，前是训练集颜色，后是测试集颜色
+        return 'deepskyblue', 'orange'
     else:
         if data in ['force', 'dipole']:
             return train_colors[:3], test_colors[:3]
@@ -44,7 +46,7 @@ if os.path.exists(in_file):
                 if 'lambda_z' in line and not line.startswith('#'):
                     lambda_z = float(line.split()[1])
 else:
-    print('No in file found. Using default values for lambda_v and batch and others.')
+    print(f"{in_file} does not exist. Using default values for parameters.")
 
 def get_indices(data, marker):
     def get_no_indices(path):
@@ -73,7 +75,7 @@ def get_indices(data, marker):
             train_nidx, train_idx, train_len = t_nidx, t_idx, t_len
         else:
             test_nidx, test_idx, test_len = t_nidx, t_idx, t_len
-    return train_nidx, train_idx, train_len, test_idx, test_idx, test_len
+    return train_nidx, train_idx, train_len, test_nidx, test_idx, test_len
 if model_type is None:
     train_nv_idx, train_v_idx, train_v_len, test_nv_idx, test_v_idx, test_v_len = get_indices('virial', '-1e+06')
     if len(train_nv_idx) == train_v_len:
@@ -141,12 +143,25 @@ def process_data(data, data_type):
     else:
         return globals().get(f"{data}_{data_type}")
 
-def get_element_property(file, atoms_property):
-    potential_file = 'gnep.txt' if os.path.exists('gnep.txt') else 'nep.txt'
-    with open(potential_file, 'r') as txtfile:
-        first_line = txtfile.readline().strip()
-        elements = first_line.split()[2:]
+def get_txtfile(txtfile):
+    has_zbl, nr_max, na_max, l_max, dim = 0, 6, 6, [], 30
+    if not os.path.exists(txtfile):
+        print(f"{txtfile} does not exist. Cannot plot charge or descriptor(output_descriptor 2).")
+        if charge_mode != 0:
+            print('And can not compute or modify self_epsilon_sqrt without nep.txt')
+        exit(1)
+    else:
+        with open(txtfile) as txtfile:
+            lines = txtfile.readlines()
+            charge_mode = int(lines[0].split()[0].split('charge')[1])
+            elements = lines[0].split()[2:]
+            has_zbl = 1 if lines[1].split()[0].lower() == 'zbl' else 0
+            nr_max, na_max = int(lines[2+has_zbl].split()[1]), int(lines[2+has_zbl].split()[2])
+            l_max = lines[4+has_zbl].split()[1:]
+            dim = int(lines[5+has_zbl].split()[1])
+        return elements, has_zbl, nr_max, na_max, l_max, dim
 
+def get_element_list(file, atoms_property, elements):
     from ase.io import read
     atoms = read(f'{file}.xyz', index=':')
     atom_symbols = []
@@ -158,6 +173,24 @@ def get_element_property(file, atoms_property):
         element_lists[symbol].append(atom_property)
     non_empty_elements_lists = {element: atom_property for element, atom_property in element_lists.items() if atom_property}
     return non_empty_elements_lists
+
+def get_self_epsilon_sqrt(elements, has_zbl, nr_max, na_max, l_max, dim, charge_mode, epsilon_sqrt_new):
+    lmax_count = sum([int(x) != 0 for x in l_max[1:]])
+    nn_lines = (nr_max + 1 + (int(l_max[0]) + lmax_count) * (na_max + 1)) * dim
+    nn_lines += dim * 4 if charge_mode > 2 else dim * 3
+    nn_lines = nn_lines * len(elements) + 1
+    self_epsilon_sqrt_line = nn_lines + 6 if has_zbl == 1 else nn_lines + 5
+    with open('nep.txt', 'r') as f:
+        lines = f.readlines()
+    self_epsilon_sqrt = lines[self_epsilon_sqrt_line].strip().split()[0]
+    print(f'epsilon_sqrt: {float(self_epsilon_sqrt)}')
+    if epsilon_sqrt_new != 0:
+        prefix = "  " if epsilon_sqrt_new >= 0 else " "
+        lines[self_epsilon_sqrt_line] = f"{prefix}{epsilon_sqrt_new:.7e}\n"
+        with open(f'nep_epsilon_sqrt_{epsilon_sqrt_new}.txt', 'w') as nf:
+            nf.writelines(lines)
+        print(f'The new epsilon_sqrt has been added to nep_epsilon_sqrt_{epsilon_sqrt_new}.txt.')
+    return self_epsilon_sqrt
 
 def check_loss(loss, label, idx):
     for i in sorted(idx, reverse=True):
@@ -301,13 +334,13 @@ def plot_diagonal(data):
         range_min = train_min if test_min is None or train_min < test_min else test_min
         range_max = train_max if test_max is None or train_max > test_max else test_max
     elif use_range == 1:
-        range_min, range_max = plot_range.get(data, (None, None))
+        range_min, range_max, interval = plot_range.get(data, (None, None, None))
     elif use_range == 2:
-        range_min, range_max = plot_range.get(data, (None, None))
+        range_min, range_max, interval = plot_range.get(data, (None, None, None))
     xlim(range_min, range_max); xticks(fontsize=13)
-    gca().set_xticks(linspace(range_min, range_max, 5))
+    gca().set_xticks(linspace(range_min, range_max, interval + 1 if interval is not None else 5))
     ylim(range_min, range_max); yticks(fontsize=13)
-    gca().set_yticks(linspace(range_min, range_max, 5))
+    gca().set_yticks(linspace(range_min, range_max, interval + 1 if interval is not None else 5))
     plot(linspace(range_min, range_max), linspace(range_min, range_max), 'k--', zorder=0)
     set_tick_params()
     xlabel(f"DFT {data} ({label_unit})", fontsize=15)
@@ -315,11 +348,12 @@ def plot_diagonal(data):
     tight_layout()
     pass
 
-def plot_charge():
+def plot_charge(elements):
     if not os.path.exists('charge_train.out'):
         return
     else:
         print('Plotting charge...')
+        print('If you think the signs are incorrect, use `charge_mode 1/2 1` and run 100 more steps.')
         charge_train = np.loadtxt('charge_train.out')
     if batch < len(energy_train):
         print('If it is not fullbatch, please use the predicted charge_ *. out file')
@@ -327,11 +361,11 @@ def plot_charge():
     
     import seaborn as sns
     figure(figsize=(7,5))
-    element_charges_train = get_element_property('train', charge_train * charge_sign)
+    element_charges_train = get_element_list('train', charge_train, elements)
     palette = sns.color_palette("tab10", 10)
     if os.path.exists("charge_test.out"):
         charge_test = np.loadtxt('charge_test.out')
-        element_charges_test = get_element_property('test', charge_test * charge_sign)
+        element_charges_test = get_element_list('test', charge_test, elements)
         
         for idx, (element_train, element_test) in enumerate(zip(element_charges_train.keys(), element_charges_test.keys())):
             c = palette[idx % 10]
@@ -352,14 +386,13 @@ def plot_charge():
         legend(frameon=False, fontsize=12, loc='upper right')
 
     xlabel('Charge', fontsize=15); xticks(fontsize=12)
-    ylabel('Frequency', fontsize=15); yticks(fontsize=12)
+    ylabel('Count' if charge_plot_method == 'hist' else 'Density', fontsize=15); yticks(fontsize=12)
     set_tick_params()
     tight_layout()
     savefig(f'nep-charge.png', dpi=300, bbox_inches='tight')
     pass
 
 def plot_descriptor():
-    print('Plotting descriptor...')
     if not os.path.exists('descriptor.out'):
         return
     else:
@@ -371,6 +404,7 @@ def plot_descriptor():
 
     figure(figsize=(5.5,5))
     if len(descriptor) == len(energy_train):
+        print('Plotting descriptors for each structure...')
         sc = scatter(proj[:, 0], proj[:, 1], c=energy_train[:,1], cmap='Blues', edgecolor='grey', alpha=0.8)
         cbar = colorbar(sc, cax=gca().inset_axes([0.73, 0.95, 0.23, 0.03]), orientation='horizontal')
         #cbar.set_ticks([sc.get_clim()[0], sc.get_clim()[1]])
@@ -378,7 +412,8 @@ def plot_descriptor():
         cbar.set_label('E/atom (eV)')
         title('Descriptors for each structure')
     elif len(descriptor) == len(force_train):
-        element_des = get_element_property('train', descriptor)
+        print('Plotting descriptors for each atom...')
+        element_des = get_element_list('train', descriptor, train_elements)
         for element in element_des.keys():
             scatter([i[0] for i in element_des[element]], [i[1] for i in element_des[element]], edgecolor='grey', alpha=0.8, label=element)
         legend(frameon=False, fontsize=10, loc='upper right')
@@ -393,6 +428,9 @@ def plot_descriptor():
     pass
 
 def plot_base_picture():
+    if not glob.glob('*_train.out'):
+        print('No *_train.out files found. Skipping base diagonal plots.')
+        return
     def plot_base_diagonals(diag_types, hang, lie, start):
         for i, diag_type in enumerate(diag_types):
             subplot(hang, lie, i+start)
@@ -424,6 +462,8 @@ if os.path.exists('loss.out'):
         print('qNEP Train')
     elif model_type == 'dipole' or model_type == 'polarizability':
         print('TNEP Train')
+    elif os.path.exists('gnep.in'):
+        print('GNEP Train')
     else:
         print('NEP Train')
 
@@ -440,25 +480,36 @@ if os.path.exists('loss.out'):
         savefig('nep-loss.png', dpi=300)
 
     plot_base_picture()
-    plot_charge()
-    if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
-        b_size = 5.5 if three_six_component == 0 else 6.5
-        figure(figsize=(b_size, b_size))
-        plot_diagonal('bec')
-        savefig('nep-bec-diagonal.png', dpi=300)
+    
+    train_elements, has_zbl, nr_max, na_max, l_max, dim = get_txtfile('nep.txt') 
+    if charge_mode != 0:
+        plot_charge(train_elements)
+        if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
+            b_size = 5.5 if three_six_component == 0 else 6.5
+            figure(figsize=(b_size, b_size))
+            plot_diagonal('bec')
+            savefig('nep-bec-diagonal.png', dpi=300)
+    get_self_epsilon_sqrt(train_elements, has_zbl, nr_max, na_max, l_max, dim, charge_mode, epsilon_sqrt_new)
 else:
     if charge_mode != 0:
         print('qNEP Prediction')
     elif model_type == 'dipole' or model_type == 'polarizability':
         print('TNEP Prediction')
+    elif os.path.exists('gnep.in'):
+        print('GNEP Prediction')
     else:
         print('NEP Prediction')
 
     plot_base_picture()
-    plot_charge()
-    if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
-        b_size = 5.5 if three_six_component == 0 else 6.5
-        figure(figsize=(b_size, b_size))
-        plot_diagonal('bec')
-        savefig('nep-bec-diagonal.png', dpi=300)
+
+    train_elements, has_zbl, nr_max, na_max, l_max, dim = get_txtfile('nep.txt') 
+    if charge_mode != 0:
+        plot_charge(train_elements)
+        if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
+            b_size = 5.5 if three_six_component == 0 else 6.5
+            figure(figsize=(b_size, b_size))
+            plot_diagonal('bec')
+            savefig('nep-bec-diagonal.png', dpi=300)
+    get_self_epsilon_sqrt(train_elements, has_zbl, nr_max, na_max, l_max, dim, charge_mode, epsilon_sqrt_new)
+    
     plot_descriptor()
