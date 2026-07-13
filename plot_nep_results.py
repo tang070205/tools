@@ -153,7 +153,7 @@ def get_txtfile(txtfile):
     else:
         with open(txtfile) as txtfile:
             lines = txtfile.readlines()
-            charge_mode = int(lines[0].split()[0].split('charge')[1])
+            charge_mode = int(lines[0].split()[0].split('charge')[1]) if 'charge' in lines[0].split()[0] else 0
             elements = lines[0].split()[2:]
             has_zbl = 1 if lines[1].split()[0].lower() == 'zbl' else 0
             nr_max, na_max = int(lines[2+has_zbl].split()[1]), int(lines[2+has_zbl].split()[2])
