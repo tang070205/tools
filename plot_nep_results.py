@@ -48,40 +48,32 @@ if os.path.exists(in_file):
 else:
     print(f"{in_file} does not exist. Using default values for parameters.")
 
-def get_indices(data, marker):
-    def get_no_indices(path):
-        idx = []
-        with open(path) as f:
-            for i, line in enumerate(f):
-                parts = line.split()
-                if len(set(parts[6:])) == 1 or parts[-1] == marker:
-                    idx.append(i)
-            total = i + 1 if 'i' in locals() else 0
-        return idx, total
-
-    train_nidx, test_nidx, train_idx, test_idx = [], [], [], []
-    train_len, test_len = 0, 0
-    if data == 'virial' and lambda_v == 0:
-        return [], [], 0, [], [], 0
-    tt = ['train', 'test'] if os.path.exists(f'{data}_test.out') else ['train']
-    for t in tt:
-        t_nidx, t_len = get_no_indices(f'{data}_{t}.out')
-        t_idx = np.setdiff1d(np.arange(t_len), t_nidx, assume_unique=True)
-        if len(t_nidx) > 0:
-            np.savetxt(f'{t}_no_{data}_indices.txt', t_nidx, fmt='%d')
-            print(f"{t.capitalize()} set has {len(t_nidx)} lines without {data}, saved to {t}_no_{data}_indices.txt")
+def load_valid(data, marker):
+    """Load {data}_train/test.out, dropping rows whose DFT reference columns are all `marker`."""
+    def load(t):
+        path = f'{data}_{t}.out'
+        if not os.path.exists(path):
+            return None
+        arr = np.atleast_2d(np.loadtxt(path))
+        # stress misses data on the same rows as virial; use the virial file as mask source if present
+        mask_path = f'virial_{t}.out' if data == 'stress' and os.path.exists(f'virial_{t}.out') else path
+        ref = np.atleast_2d(np.loadtxt(mask_path)) if mask_path != path else arr
+        ref = ref[:, ref.shape[1]//2:]
+        bad = np.all(ref == marker, axis=1)
+        if bad.any():
+            np.savetxt(f'{t}_no_{data}_indices.txt', np.where(bad)[0], fmt='%d')
+            print(f"{t.capitalize()} set has {bad.sum()} lines without {data}, saved to {t}_no_{data}_indices.txt")
             print("This index is only applicable to fullbatch training and prediction")
-        if t == 'train':
-            train_nidx, train_idx, train_len = t_nidx, t_idx, t_len
-        else:
-            test_nidx, test_idx, test_len = t_nidx, t_idx, t_len
-    return train_nidx, train_idx, train_len, test_nidx, test_idx, test_len
-if model_type is None:
-    train_nv_idx, train_v_idx, train_v_len, test_nv_idx, test_v_idx, test_v_len = get_indices('virial', '-1e+06')
-    if len(train_nv_idx) == train_v_len:
+        return arr[~bad]
+    return load('train'), load('test')
+
+if model_type is None and lambda_v != 0:
+    if os.path.exists('virial_train.out'):
+        virial_train_ref = np.atleast_2d(np.loadtxt('virial_train.out'))
+        if np.all(virial_train_ref[:, virial_train_ref.shape[1]//2:] == -1e6):
+            lambda_v = 0
+    else:
         lambda_v = 0
-if charge_mode !=0 and os.path.exists('bec_train.out'):
-    train_nb_idx, train_b_idx, train_b_len, test_nb_idx, test_b_idx, test_b_len = get_indices('bec', '0')
 
 def set_tick_params():
     tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
@@ -149,17 +141,17 @@ def get_txtfile(txtfile):
         print(f"{txtfile} does not exist. Cannot plot charge or descriptor(output_descriptor 2).")
         if charge_mode != 0:
             print('And can not compute or modify self_epsilon_sqrt without nep.txt')
-        exit(1)
+        return None
     else:
-        with open(txtfile) as txtfile:
-            lines = txtfile.readlines()
-            charge_mode = int(lines[0].split()[0].split('charge')[1]) if 'charge' in lines[0].split()[0] else 0
+        with open(txtfile) as f:
+            lines = f.readlines()
+            charge_mode_nep = int(lines[0].split()[0].split('charge')[1]) if 'charge' in lines[0].split()[0] else 0
             elements = lines[0].split()[2:]
             has_zbl = 1 if lines[1].split()[0].lower() == 'zbl' else 0
             nr_max, na_max = int(lines[2+has_zbl].split()[1]), int(lines[2+has_zbl].split()[2])
             l_max = lines[4+has_zbl].split()[1:]
             dim = int(lines[5+has_zbl].split()[1])
-        return elements, has_zbl, nr_max, na_max, l_max, dim
+        return [elements, has_zbl, nr_max, na_max, l_max, dim, charge_mode_nep]
 
 def get_element_list(file, atoms_property, elements):
     from ase.io import read
@@ -174,7 +166,8 @@ def get_element_list(file, atoms_property, elements):
     non_empty_elements_lists = {element: atom_property for element, atom_property in element_lists.items() if atom_property}
     return non_empty_elements_lists
 
-def get_self_epsilon_sqrt(elements, has_zbl, nr_max, na_max, l_max, dim, charge_mode, epsilon_sqrt_new):
+def get_self_epsilon_sqrt(info):
+    elements, has_zbl, nr_max, na_max, l_max, dim, charge_mode = info
     lmax_count = sum([int(x) != 0 for x in l_max[1:]])
     nn_lines = (nr_max + 1 + (int(l_max[0]) + lmax_count) * (na_max + 1)) * dim
     nn_lines += dim * 4 if charge_mode > 2 else dim * 3
@@ -280,30 +273,26 @@ def plot_diagonal(data):
     train_legs, test_legs = generate_legs(data, properties, prefixes[0::2]), generate_legs(data, properties, prefixes[1::2])
     train_leg, test_leg = train_legs.get(data, 'unknown train_legs'), test_legs.get(data, 'unknown test_legs')
 
-    if os.path.exists(f'{data}_train.out'):
-        globals()[f'{data}_train'] = np.loadtxt(f'{data}_train.out')
+    marker = (-1e6 if data in ['virial', 'stress'] else 0.0) if data in ['virial', 'stress', 'bec'] else None
+    if marker is not None:
+        train_arr, test_arr = load_valid(data, marker)
     else:
+        train_arr = np.atleast_2d(np.loadtxt(f'{data}_train.out')) if os.path.exists(f'{data}_train.out') else None
+        test_arr = np.atleast_2d(np.loadtxt(f'{data}_test.out')) if os.path.exists(f'{data}_test.out') else None
+    if train_arr is None:
         print(f'{data}_train.out does not exist')
         return
-    if data == 'virial' or data == 'stress':
-        if train_nv_idx is not None and len(train_nv_idx) < train_v_len:
-            globals()[f'{data}_train'] = globals()[f'{data}_train'][train_v_idx]
-    elif data == 'bec':
-        if train_nb_idx is not None and len(train_nb_idx) < train_b_len:
-            globals()[f'{data}_train'] = globals()[f'{data}_train'][train_b_idx]
+    if len(train_arr) == 0:
+        print(f'No valid {data} reference data. Skipping {data} diagonal.')
+        return
+    globals()[f'{data}_train'] = train_arr
     data_train = process_data(data, 'train')
     train_min, train_max = get_range(data, data_train)
     plot_value(data_train, color_train, data)
     origin_rmse_train, rmse_data_train, r2_data_train = calc_r2_rmse(data_train)
 
-    if os.path.exists(f"{data}_test.out"):
-        globals()[f'{data}_test'] = np.loadtxt(f'{data}_test.out')
-        if data == 'virial' or data == 'stress':
-            if len(test_nv_idx) < test_v_len:
-                globals()[f'{data}_test'] = globals()[f'{data}_test'][test_v_idx]
-        elif data == 'bec':
-            if len(test_nb_idx) < test_b_len:
-                globals()[f'{data}_test'] = globals()[f'{data}_test'][test_b_idx]
+    if test_arr is not None and len(test_arr) > 0:
+        globals()[f'{data}_test'] = test_arr
         data_test = process_data(data, 'test')
         test_min, test_max = get_range(data, data_test) 
         plot_value(data_test, color_test, data)
@@ -413,6 +402,9 @@ def plot_descriptor():
         cbar.set_label('E/atom (eV)')
         title('Descriptors for each structure')
     elif len(descriptor) == len(force_train):
+        if 'train_elements' not in globals():
+            print('nep.txt is missing. Cannot color descriptors by element.')
+            return
         print('Plotting descriptors for each atom...')
         element_des = get_element_list('train', descriptor, train_elements)
         for element in element_des.keys():
@@ -482,15 +474,18 @@ if os.path.exists('loss.out'):
 
     plot_base_picture()
     
-    train_elements, has_zbl, nr_max, na_max, l_max, dim = get_txtfile('nep.txt') 
-    if charge_mode != 0:
-        plot_charge(train_elements)
-        if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
-            b_size = 5.5 if three_six_component == 0 else 6.5
-            figure(figsize=(b_size, b_size))
-            plot_diagonal('bec')
-            savefig('nep-bec-diagonal.png', dpi=300)
-    get_self_epsilon_sqrt(train_elements, has_zbl, nr_max, na_max, l_max, dim, charge_mode, epsilon_sqrt_new)
+    txtfile_info = get_txtfile('nep.txt')
+    if txtfile_info is not None:
+        train_elements = txtfile_info[0]
+        charge_mode = txtfile_info[6]
+        if charge_mode != 0:
+            plot_charge(train_elements)
+            if os.path.exists('bec_train.out') and lambda_z != 0:
+                b_size = 5.5 if three_six_component == 0 else 6.5
+                figure(figsize=(b_size, b_size))
+                plot_diagonal('bec')
+                savefig('nep-bec-diagonal.png', dpi=300)
+            get_self_epsilon_sqrt(txtfile_info)
 else:
     if charge_mode != 0:
         print('qNEP Prediction')
@@ -503,14 +498,17 @@ else:
 
     plot_base_picture()
 
-    train_elements, has_zbl, nr_max, na_max, l_max, dim = get_txtfile('nep.txt') 
-    if charge_mode != 0:
-        plot_charge(train_elements)
-        if os.path.exists('bec_train.out') and len(train_b_idx) != 0 and lambda_z != 0:
-            b_size = 5.5 if three_six_component == 0 else 6.5
-            figure(figsize=(b_size, b_size))
-            plot_diagonal('bec')
-            savefig('nep-bec-diagonal.png', dpi=300)
-    get_self_epsilon_sqrt(train_elements, has_zbl, nr_max, na_max, l_max, dim, charge_mode, epsilon_sqrt_new)
+    txtfile_info = get_txtfile('nep.txt')
+    if txtfile_info is not None:
+        train_elements = txtfile_info[0]
+        charge_mode = txtfile_info[6]
+        if charge_mode != 0:
+            plot_charge(train_elements)
+            if os.path.exists('bec_train.out') and lambda_z != 0:
+                b_size = 5.5 if three_six_component == 0 else 6.5
+                figure(figsize=(b_size, b_size))
+                plot_diagonal('bec')
+                savefig('nep-bec-diagonal.png', dpi=300)
+            get_self_epsilon_sqrt(txtfile_info)
     
     plot_descriptor()
